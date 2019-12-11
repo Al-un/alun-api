@@ -15,6 +15,16 @@ API for al-un.fr
 - [How to find a MongoDB document by its BSON ObjectID](https://kb.objectrocket.com/mongo-db/how-to-find-a-mongodb-document-by-its-bson-objectid-using-golang-452)
 
 
+#### Queries
+
+```sql
+db.al_users_login.deleteMany({ "timestamp": {"$lte": new Date() } )
+db.al_users_login.deleteMany( { "timestamp": { "$lte": new Date(2999,1,1) } } )
+```
+https://stackoverflow.com/a/30772989/4906586
+https://stackoverflow.com/a/47170066/4906586
+
+
 ## Heroku
 
 ```sh

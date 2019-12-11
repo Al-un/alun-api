@@ -4,14 +4,15 @@ import (
 	"crypto/sha512"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/Al-un/alun-api/pkg/core"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gorilla/mux"
 )
 
 // ----------------------------------------------------------------------------
@@ -34,24 +35,93 @@ func init() {
 // ---------- Utilities (public) ----------------------------------------------
 
 // IsAuthorized checks if the request has the appropriate JWT
-func IsAuthorized(endpoint func(http.ResponseWriter, *http.Request), needAdmin bool) http.Handler {
+func IsAuthorized(endpoint func(http.ResponseWriter, *http.Request), authCheckConfig AuthCheckConfig) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if needAdmin {
-			if isJWTAdmin(r) {
-				endpoint(w, r)
-			} else {
-				w.WriteHeader(http.StatusForbidden)
+		var claims JwtClaims
+		claimsRef, authCheckStatusCode := decodeJWT(r)
+		if claimsRef != nil {
+			claims = *claimsRef
+		}
+
+		var log = func(msg string) {
+			log.Printf("%v: %v\n", r.URL.Path, msg)
+		}
+
+		// fmt.Printf("%v: %v\n", authCheckStatusCode, claims)
+
+		// For the moment, only use user ":userId" in the route
+		authCheckConfig.UserID = mux.Vars(r)["userId"]
+
+		// Get the proper check
+		switch authCheckConfig.Mode {
+		case AuthCheckMode.isLogged:
+			// do nothing, already handled by decodeJWT
+
+		case AuthCheckMode.isAdmin:
+			// ignore if previous check already fail
+			if authCheckStatusCode == authStatus.isAuthorized {
+				// isAdmin?
+				if !claims.IsAdmin {
+					authCheckStatusCode = authStatus.isNotAuthorized
+				}
 			}
 
-			return
+		case AuthCheckMode.isAdminOrUser:
+			// isAdmin or OwnUser?
+			if authCheckStatusCode == authStatus.isAuthorized {
+				if !(claims.IsAdmin || claims.UserID == authCheckConfig.UserID) {
+					authCheckStatusCode = authStatus.isNotAuthorized
+				}
+			}
+
+		case AuthCheckMode.isUser:
+			// isOwnUser?
+			if authCheckStatusCode == authStatus.isAuthorized {
+				if claims.UserID != authCheckConfig.UserID {
+					authCheckStatusCode = authStatus.isNotAuthorized
+				}
+			}
 		}
 
-		if isJWTLogged(r) {
+		// fmt.Printf("AuthConfig: %v vs %v is %v\n", authCheckConfig, claims, claims.UserID == authCheckConfig.UserID)
+
+		// Here were go
+		switch authCheckStatusCode {
+
+		case authStatus.isAuthorized:
 			endpoint(w, r)
-			return
-		}
 
-		w.WriteHeader(http.StatusUnauthorized)
+		case authStatus.isNotAuthorized:
+			log("Not authorized")
+			w.WriteHeader(http.StatusForbidden)
+
+		case authStatus.isTokenExpired:
+			w.WriteHeader(http.StatusForbidden)
+			json.NewEncoder(w).Encode(core.ErrorMsg{Error: authErrorMsg.isTokenExpired})
+			log(authErrorMsg.isTokenExpired)
+		case authStatus.isTokenMalformed:
+			w.WriteHeader(http.StatusForbidden)
+			json.NewEncoder(w).Encode(core.ErrorMsg{Error: authErrorMsg.isTokenMalformed})
+			log(authErrorMsg.isTokenMalformed)
+		case authStatus.isTokenInvalid:
+			w.WriteHeader(http.StatusForbidden)
+			json.NewEncoder(w).Encode(core.ErrorMsg{Error: authErrorMsg.isTokenInvalid})
+			log(authErrorMsg.isTokenInvalid)
+
+		case authStatus.isAuthorizationMissing:
+			w.WriteHeader(http.StatusForbidden)
+			json.NewEncoder(w).Encode(core.ErrorMsg{Error: authErrorMsg.isAuthorizationMissing})
+			log(authErrorMsg.isAuthorizationMissing)
+		case authStatus.isAuthorizationInvalid:
+			w.WriteHeader(http.StatusForbidden)
+			json.NewEncoder(w).Encode(core.ErrorMsg{Error: authErrorMsg.isAuthorizationInvalid})
+			log(authErrorMsg.isAuthorizationInvalid)
+
+		case authStatus.isUnknownError:
+			w.WriteHeader(http.StatusForbidden)
+			json.NewEncoder(w).Encode(core.ErrorMsg{Error: authErrorMsg.isUnknownError})
+			log(authErrorMsg.isUnknownError)
+		}
 	})
 }
 
@@ -86,11 +156,14 @@ func hashPassword(clearPassword string) string {
 //
 // Generate Token	: https://godoc.org/github.com/dgrijalva/jwt-go#example-New--Hmac
 // Custom claims	: https://godoc.org/github.com/dgrijalva/jwt-go#NewWithClaims
-func generateJWT(user User) (string, error) {
+func generateJWT(user User) (Token, error) {
+	tokenExpiration := time.Now().Add(time.Hour * 24 * 60)
+
 	userClaims := JwtClaims{
 		IsAdmin: user.IsAdmin,
+		UserID:  user.ID.Hex(),
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(time.Hour * 24 * 60).Unix(),
+			ExpiresAt: tokenExpiration.Unix(),
 			Issuer:    "api.al-un.fr",
 			IssuedAt:  time.Now().Unix(),
 			Subject:   user.Username,
@@ -99,34 +172,43 @@ func generateJWT(user User) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, userClaims)
 
+	// fmt.Println("Generating token ", token)
+
 	tokenString, err := token.SignedString([]byte(jwtSecretKey))
 
 	if err != nil {
 		fmt.Printf("[JWT generation] error: %s\n", err.Error())
-		return "", err
+		return Token{}, err
 	}
 
-	return tokenString, nil
+	return Token{Jwt: tokenString, ExpiresOn: tokenExpiration, IsInvalid: false}, nil
 }
 
 // decodeJWT extracts the claims from a JWT if it is valid.
 // Parse token		: https://godoc.org/github.com/dgrijalva/jwt-go#example-Parse--Hmac
 // Custom claims	: https://godoc.org/github.com/dgrijalva/jwt-go#ParseWithClaims
-func decodeJWT(r *http.Request) (JwtClaims, error) {
+//
+// Returns:
+// - JwtClaims 	: if token is present and valid
+// - int			: an `authStatus` code if some check already fails
+func decodeJWT(r *http.Request) (*JwtClaims, int) {
+	// Fetch the Authorization header
 	authHeaders := r.Header["Authorization"]
 	if len(authHeaders) == 0 {
-		return JwtClaims{}, errors.New("Missing Authorization header")
+		return nil, authStatus.isAuthorizationMissing
 	}
 	authHeader := authHeaders[0]
 	if len(authHeader) == 0 {
-		return JwtClaims{}, errors.New("Missing Authorization header")
+		return nil, authStatus.isAuthorizationMissing
 	}
 	if authHeader[:6] != "Bearer" {
-		return JwtClaims{}, errors.New("Invalid Authorization header")
+		return nil, authStatus.isAuthorizationInvalid
 	}
 
+	// Get the header value and strip "Bearer " out
 	tokenString := authHeader[7:]
 
+	// Parse token. Make sure hashing method is the correct one
 	token, err := jwt.ParseWithClaims(tokenString, &JwtClaims{}, func(token *jwt.Token) (interface{}, error) {
 		// Don't forget to validate the alg is what you expect:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -135,67 +217,67 @@ func decodeJWT(r *http.Request) (JwtClaims, error) {
 		return []byte(jwtSecretKey), nil
 	})
 
-	if claims, ok := token.Claims.(JwtClaims); ok && token.Valid {
-		fmt.Println("Claims: ", claims)
-		return claims, nil
-	}
-	return JwtClaims{}, err
-}
+	// Decipher claims
+	if claims, ok := token.Claims.(*JwtClaims); ok {
 
-// isJWTExpired checks whether the claims provide an expired expiration date
-//
-// To extract an int64 from claims, checking https://stackoverflow.com/a/58441957/4906586
-func isJWTExpired(claims JwtClaims) bool {
-	// no ExpiresAt claim found
-	if claims.ExpiresAt == 0 {
-		return false
-	}
+		// Check token validity
+		if token.Valid {
 
-	expTime := time.Unix(claims.ExpiresAt, 0)
-	return expTime.After(time.Now())
-}
+			// // check if token has been invalidated
+			// login, err := findLoginByToken(tokenString)
+			// if err != nil {
+			// 	fmt.Println("[User] error when getting login by token: ", err)
+			// }
 
-// isLogged only checks if user is logged by checking a valid JWT
-func isJWTLogged(r *http.Request) bool {
-	claims, err := decodeJWT(r)
-	// Invalid JWT
-	if err != nil {
-		return false
-	}
+			// if login.Token.IsInvalid {
+			// 	return &claims, authStatus.isTokenInvalidated
+			// }
 
-	return !isJWTExpired(claims)
-}
+			return claims, authStatus.isAuthorized
+		}
 
-// isAdmin only checks if user is an admin by having a valid JWT with the appropriate claim
-func isJWTAdmin(r *http.Request) bool {
-	claims, err := decodeJWT(r)
-	if err != nil {
-		return false
+		if ve, ok := err.(*jwt.ValidationError); ok {
+			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+				return nil, authStatus.isTokenMalformed
+			} else if ve.Errors&jwt.ValidationErrorExpired != 0 {
+				return nil, authStatus.isTokenExpired
+			}
+		}
+
+		return claims, authStatus.isTokenInvalid
 	}
 
-	// expired?
-	if isJWTExpired(claims) {
-		return false
-	}
-
-	return claims.IsAdmin
+	return nil, authStatus.isUnknownError
 }
 
 func authenticateCredentials(username string, clearPassword string) func(http.ResponseWriter) {
 	user, err := findUserByUsernamePassword(username, clearPassword)
 
 	if err != nil {
-		rejectAuthentication("Invalid credentials")
+		return rejectAuthentication("Invalid credentials")
 	}
 
-	jwt, err := generateJWT(user)
-	if err != nil {
-		rejectAuthentication("Error when generating JWT")
+	login, err := findLoginWithValidToken(user)
+	// TODO: assuming error is when no login is found
+	// Also handled expired token
+	if err != nil || login.Token.ExpiresOn.After(time.Now()) {
+		// fmt.Printf(">>>>>>>>>>>> %v <<<<<<<<, \n", err)
+
+		jwt, err := generateJWT(user)
+		if err != nil {
+			return rejectAuthentication("Error when generating JWT")
+		}
+
+		login = Login{
+			UserID: user.ID,
+			Token:  jwt,
+		}
+		createLogin(login)
 	}
 
 	return func(w http.ResponseWriter) {
 		core.AddCommonHeaders(w, "POST")
-		json.NewEncoder(w).Encode(jwt)
+		json.NewEncoder(w).Encode(login.Token.Jwt)
 	}
 }
 

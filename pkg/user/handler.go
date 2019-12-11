@@ -11,7 +11,6 @@ import (
 
 // authUser authenticates user with BASIC methods or other
 func authUser(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("Received headers %v\n", r.Header)
 
 	authHeaders := r.Header["Authorization"]
 	if len(authHeaders) == 0 {
@@ -45,7 +44,7 @@ func registerUser(w http.ResponseWriter, r *http.Request) {
 func handleGetUser(w http.ResponseWriter, r *http.Request) {
 	core.AddCommonHeaders(w, "GET")
 
-	userID := mux.Vars(r)["id"]
+	userID := mux.Vars(r)["userId"]
 	user, err := findUserByID(userID)
 	if err != nil {
 		fmt.Println("[User] findByID error: ", err)
@@ -60,7 +59,7 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 	var updatingUser User
 	json.NewDecoder(r.Body).Decode(&updatingUser)
 
-	userID := mux.Vars(r)["id"]
+	userID := mux.Vars(r)["userId"]
 	result := updateUser(userID, updatingUser)
 
 	json.NewEncoder(w).Encode(result)
@@ -69,7 +68,7 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 func handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 	core.AddCommonHeaders(w, "DELETE")
 
-	userID := mux.Vars(r)["id"]
+	userID := mux.Vars(r)["userId"]
 	deleteUser(userID)
 
 	w.WriteHeader(http.StatusNoContent)
