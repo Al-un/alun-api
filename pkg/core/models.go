@@ -1,5 +1,12 @@
 package core
 
+// CorsConfig allows a flexible way to handle CORS stuff
+type CorsConfig struct {
+	Hosts   string
+	Methods string
+	Headers string
+}
+
 // ErrorMsg is a generic error message ready to be json-ed
 type ErrorMsg struct {
 	Error string `json:"error"`

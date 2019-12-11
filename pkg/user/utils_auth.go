@@ -129,7 +129,7 @@ func IsAuthorized(endpoint func(http.ResponseWriter, *http.Request), authCheckCo
 
 func rejectAuthentication(reason string) func(http.ResponseWriter) {
 	return func(w http.ResponseWriter) {
-		core.AddCommonHeaders(w, "POST")
+		core.AddCommonHeaders(w, core.CorsConfig{})
 		w.WriteHeader(http.StatusForbidden)
 
 		json.NewEncoder(w).Encode(reason)
@@ -276,7 +276,7 @@ func authenticateCredentials(username string, clearPassword string) func(http.Re
 	}
 
 	return func(w http.ResponseWriter) {
-		core.AddCommonHeaders(w, "POST")
+		core.AddCommonHeaders(w, core.CorsConfig{})
 		json.NewEncoder(w).Encode(login.Token.Jwt)
 	}
 }

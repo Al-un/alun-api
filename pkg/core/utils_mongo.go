@@ -73,7 +73,9 @@ func init() {
 	MongoDatabase = MongoClient.Database(dbName)
 }
 
-// parseMongoDbURI separate the DB. It is assumed that argument has the proper format
+// parseMongoDbURI separate the DB. It is assumed that argument has the proper format such as
+// mongodb://{user}:{passowrd}@{host}:{port}/{database}
+//
 // return (connectionString, databaseName)
 func parseMongoDbURI(mongoDbURI string) (string, string) {
 	splits := strings.Split(mongoDbURI, "/")

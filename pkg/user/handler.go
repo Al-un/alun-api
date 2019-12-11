@@ -31,7 +31,7 @@ func authUser(w http.ResponseWriter, r *http.Request) {
 
 // RegisterUser create a new user. Username does not have to be unique
 func registerUser(w http.ResponseWriter, r *http.Request) {
-	core.AddCommonHeaders(w, "POST")
+	core.AddCommonHeaders(w, core.CorsConfig{Methods: "POST"})
 
 	var creatingUser User
 	json.NewDecoder(r.Body).Decode(&creatingUser)
@@ -42,7 +42,7 @@ func registerUser(w http.ResponseWriter, r *http.Request) {
 
 // GetUser fetch some user info. Password should be omitted
 func handleGetUser(w http.ResponseWriter, r *http.Request) {
-	core.AddCommonHeaders(w, "GET")
+	core.AddCommonHeaders(w, core.CorsConfig{Methods: "GET"})
 
 	userID := mux.Vars(r)["userId"]
 	user, err := findUserByID(userID)
@@ -54,7 +54,7 @@ func handleGetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
-	core.AddCommonHeaders(w, "PUT")
+	core.AddCommonHeaders(w, core.CorsConfig{Methods: "PUT"})
 
 	var updatingUser User
 	json.NewDecoder(r.Body).Decode(&updatingUser)
@@ -66,7 +66,7 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleDeleteUser(w http.ResponseWriter, r *http.Request) {
-	core.AddCommonHeaders(w, "DELETE")
+	core.AddCommonHeaders(w, core.CorsConfig{Methods: "DELETE"})
 
 	userID := mux.Vars(r)["userId"]
 	deleteUser(userID)
