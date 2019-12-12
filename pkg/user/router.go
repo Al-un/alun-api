@@ -4,9 +4,9 @@ import "github.com/gorilla/mux"
 
 // SetupRoutes for user module
 func SetupRoutes(router *mux.Router) {
-	router.HandleFunc("/users/auth", authUser).Methods("POST")
-	router.HandleFunc("/users/register", registerUser).Methods("POST")
-	router.Handle("/users/detail/{userId}", IsAuthorized(handleGetUser, AuthCheckIsAdminOrUser(""))).Methods("GET")
-	router.Handle("/users/detail/{userId}", IsAuthorized(handleUpdateUser, AuthCheckIsAdminOrUser(""))).Methods("PUT")
-	router.Handle("/users/detail/{userId}", IsAuthorized(handleDeleteUser, AuthCheckIsAdminOrUser(""))).Methods("DELETE")
+	router.HandleFunc("/v1/users/auth", authUser).Methods("POST")
+	router.HandleFunc("/v1/users/register", registerUser).Methods("POST")
+	router.Handle("/v1/users/detail/{userId}", IsAuthorized(handleGetUser, AuthCheckIsAdminOrUser(""))).Methods("GET")
+	router.Handle("/v1/users/detail/{userId}", IsAuthorized(handleUpdateUser, AuthCheckIsAdminOrUser(""))).Methods("PUT")
+	router.Handle("/v1/users/detail/{userId}", IsAuthorized(handleDeleteUser, AuthCheckIsAdminOrUser(""))).Methods("DELETE")
 }
