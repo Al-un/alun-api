@@ -5,23 +5,17 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Al-un/alun-api/pkg/user"
-	"github.com/gorilla/mux"
+	"github.com/Al-un/alun-api/pkg/core"
+	"github.com/Al-un/alun-api/pkg/logger"
 )
 
 var serverPort = 8000
 
-func setupRouter() *mux.Router {
-	router := mux.NewRouter()
-
-	user.SetupRoutes(router)
-
-	return router
-}
-
 func main() {
-	r := setupRouter()
+	r := core.SetupRouter(core.AuthAPI)
 
-	log.Printf("[Server] Starting server on port %d...\n", serverPort)
+	rootLogger := logger.NewConsoleLogger(logger.LogLevelInfo)
+
+	rootLogger.Info("[Server] Starting server on port %d...", serverPort)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", serverPort), r))
 }
