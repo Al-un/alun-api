@@ -1,10 +1,8 @@
-package user
+package core
 
 import (
 	"context"
-	"log"
 
-	"github.com/Al-un/alun-api/pkg/core"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -26,30 +24,39 @@ var dbUserLoginCollection *mongo.Collection
 
 // Init the connection with MongoDB upon app initialisation
 func init() {
+	// init() function are called in order of files so DAO needs to be init
+	if MongoDatabase == nil {
+		initDao()
+	}
+
 	// Initialisation: collections name
 	dbUserCollectionName = "al_users"
 	dbUserLoginCollectionName = "al_users_login"
 
 	// Initialisation: collections instances
-	dbUserCollection = core.MongoDatabase.Collection(dbUserCollectionName)
-	dbUserLoginCollection = core.MongoDatabase.Collection(dbUserLoginCollectionName)
+	dbUserCollection = MongoDatabase.Collection(dbUserCollectionName)
+	dbUserLoginCollection = MongoDatabase.Collection(dbUserLoginCollectionName)
 
-	log.Println("[MongoDB] User initialisation!")
+	coreLogger.Info("[MongoDB] User initialisation!")
 }
 
 // ---------- CRUD ------------------------------------------------------------
 
 // findUser fetches an user for a given username and CLEAR password
 func findUserByUsernamePassword(username string, clearPassword string) (User, error) {
-	var user User
+	var authUser authenticatedUser
 	var hashedPassword = hashPassword(clearPassword)
 
 	filter := bson.M{"username": username, "password": hashedPassword}
-	if err := dbUserCollection.FindOne(context.TODO(), filter).Decode(&user); err != nil {
+	if err := dbUserCollection.FindOne(context.TODO(), filter).Decode(&authUser); err != nil {
+		coreLogger.Verbose("Credentials %s/%s (hashed: %s) are NOT valid T_T due to error: %v",
+			username, clearPassword, hashedPassword, err)
 		return User{}, err
 	}
 
-	return user, nil
+	coreLogger.Verbose("Credentials %s/%s are valid \\o/", username, clearPassword)
+
+	return authUser.extractUser(), nil
 }
 
 // findUserById fetches an user for a given ID
@@ -90,19 +97,20 @@ func findLoginByToken(jwt string) (Login, error) {
 }
 
 // createUser creates the user assuming that passowrd is not hashed yet
-func createUser(user User) *mongo.InsertOneResult {
-	var hashedPassword = hashPassword(user.Password)
+func createUser(user authenticatedUser) *mongo.InsertOneResult {
+	clearPassword := user.Password
+	var hashedPassword = hashPassword(clearPassword)
 	user.Password = hashedPassword
 
 	createdUser, _ := dbUserCollection.InsertOne(context.TODO(), user)
-	log.Printf("[User] Creating user <%v> with insertResult <%v>", user, createdUser)
+	coreLogger.Verbose("[User] Creating user <%s/%s> with insertResult <%v>", user.Username, clearPassword, createdUser)
 	return createdUser
 }
 
 // createLogin just saves the login in the DB
 func createLogin(login Login) *mongo.InsertOneResult {
 	created, _ := dbUserLoginCollection.InsertOne(context.TODO(), login)
-	log.Printf("[User] Creating login <%v> with insertResult <%v>", login, created)
+	coreLogger.Debug("[User] Creating login <%v> with insertResult <%v>", login, created)
 	return created
 }
 
@@ -120,7 +128,7 @@ func updateUser(userID string, user User) *mongo.UpdateResult {
 	}
 
 	result, _ := dbUserCollection.UpdateOne(context.TODO(), filter, update)
-	log.Printf("[User] Creating user <%v> with result <%v>", user, result)
+	coreLogger.Debug("[User] Creating user <%v> with result <%v>", user, result)
 	return result
 }
 
@@ -134,7 +142,7 @@ func invalidateLogin(jwt string) *mongo.UpdateResult {
 	}
 
 	result, _ := dbUserLoginCollection.UpdateOne(context.TODO(), filter, update)
-	log.Printf("[User] Invalidate <%v> with result <%v>", jwt, result)
+	coreLogger.Debug("[User] Invalidate <%v> with result <%v>", jwt, result)
 	return result
 
 }
@@ -144,9 +152,9 @@ func deleteUser(userID string) int64 {
 	filter := bson.M{"_id": id}
 	d, err := dbUserCollection.DeleteMany(context.TODO(), filter, nil)
 	if err != nil {
-		log.Println("[User] error in user deletion: ", err)
+		coreLogger.Info("[User] error in user deletion: ", err)
 	}
 
-	log.Printf("[User] Deleting ID <%v>: %d count(s)", userID, d.DeletedCount)
+	coreLogger.Debug("[User] Deleting ID <%v>: %d count(s)", userID, d.DeletedCount)
 	return d.DeletedCount
 }

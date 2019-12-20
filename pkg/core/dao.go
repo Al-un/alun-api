@@ -2,7 +2,6 @@ package core // import github.com/Al-un/alun-api/pkg/core
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -40,17 +39,23 @@ var dbName string
 
 // Init the connection with MongoDB upon app initialisation
 func init() {
+	if MongoDatabase == nil {
+		initDao()
+	}
+}
+
+func initDao() {
 	// Variable initialisation
 	// mongodb://heroku_rl0mksb2:ekaett1c181uem6kbph1tg53fo@ds241408.mlab.com:41408/heroku_rl0mksb2
 
 	if mongoDbURI := os.Getenv("MONGODB_URI"); mongoDbURI != "" {
 		// Loading for Heroku
 		dbConnectionString, dbName = parseMongoDbURI(mongoDbURI)
-		log.Println("[MongoDB] Loading values from MONGODB_URI")
+		coreLogger.Debug("[MongoDB] Loading values from MONGODB_URI")
 	} else {
 		// Loading for local development
 		dbConnectionString, dbName = parseMongoDbURI(dbDefaulMongoURI)
-		log.Printf("[MongoDB] Loading default values [%v][%v]\n", dbConnectionString, dbName)
+		coreLogger.Debug("[MongoDB] Loading default values [%v][%v]", dbConnectionString, dbName)
 	}
 
 	// Client options
@@ -67,7 +72,7 @@ func init() {
 	if err != nil {
 		log.Fatal("[MongoDB][ERROR] ping error: ", err)
 	}
-	log.Println("[MongoDB] Connected \\o/")
+	coreLogger.Info("[MongoDB] Connected to database \\o/")
 
 	// Init the database instance
 	MongoDatabase = MongoClient.Database(dbName)
@@ -82,7 +87,7 @@ func parseMongoDbURI(mongoDbURI string) (string, string) {
 
 	var connString string
 	dbName := splits[len(splits)-1]
-	fmt.Println(splits)
+
 	for i := 0; i < len(splits)-1; i++ {
 		if connString == "" {
 			connString = splits[i]
