@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -34,8 +33,15 @@ func registerUser(w http.ResponseWriter, r *http.Request) {
 
 	coreLogger.Verbose("Registering user %v", creatingUser)
 
-	createdUser := createUser(creatingUser)
-	http.Redirect(w, r, fmt.Sprintf("/users/details/%v", createdUser.InsertedID), http.StatusCreated)
+	createdUser, err := createUser(creatingUser)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(err)
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(createdUser)
+
 }
 
 // GetUser fetch some user info. Password should be omitted

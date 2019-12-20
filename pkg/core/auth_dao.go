@@ -97,21 +97,45 @@ func findLoginByToken(jwt string) (Login, error) {
 }
 
 // createUser creates the user assuming that passowrd is not hashed yet
-func createUser(user authenticatedUser) *mongo.InsertOneResult {
+//
+// returns new user ID
+func createUser(user authenticatedUser) (User, error) {
 	clearPassword := user.Password
 	var hashedPassword = hashPassword(clearPassword)
 	user.Password = hashedPassword
 
-	createdUser, _ := dbUserCollection.InsertOne(context.TODO(), user)
-	coreLogger.Verbose("[User] Creating user <%s/%s> with insertResult <%v>", user.Username, clearPassword, createdUser)
-	return createdUser
+	createdUser, err := dbUserCollection.InsertOne(context.TODO(), user)
+	if err != nil {
+		coreLogger.Warn("Error when creating user of username %s: %v", user.Username, err)
+		return User{}, err
+	}
+
+	var newUser User
+	filter := bson.M{"_id": createdUser.InsertedID}
+	if err := dbUserCollection.FindOne(context.TODO(), filter).Decode(&newUser); err != nil {
+		return User{}, err
+	}
+
+	coreLogger.Verbose("[User] Creating user <%s/%s> with newId <%v>", user.Username, clearPassword, newUser.ID)
+
+	return newUser, nil
 }
 
 // createLogin just saves the login in the DB
-func createLogin(login Login) *mongo.InsertOneResult {
-	created, _ := dbUserLoginCollection.InsertOne(context.TODO(), login)
+func createLogin(login Login) (Login, error) {
+	created, err := dbUserLoginCollection.InsertOne(context.TODO(), login)
+	if err != nil {
+		return Login{}, err
+	}
 	coreLogger.Debug("[User] Creating login <%v> with insertResult <%v>", login, created)
-	return created
+
+	var newLogin Login
+	filter := bson.M{"_id": created.InsertedID}
+	if err := dbUserLoginCollection.FindOne(context.TODO(), filter).Decode(&newLogin); err != nil {
+		return Login{}, err
+	}
+
+	return newLogin, nil
 }
 
 // https://www.mongodb.com/blog/post/quick-start-golang--mongodb--how-to-update-documents
