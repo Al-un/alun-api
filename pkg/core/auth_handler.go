@@ -9,6 +9,17 @@ import (
 
 // authUser authenticates user with BASIC methods or other
 func authUser(w http.ResponseWriter, r *http.Request) {
+
+	// --- JSON-based authentication
+	var user authenticatedUser
+	json.NewDecoder(r.Body).Decode(&user)
+	if user.Username != "" && user.Password != "" {
+		coreLogger.Verbose("JSON authentication: %s/%s", user.Username, user.Password)
+		authenticateCredentials(user.Username, user.Password)(w)
+		return
+	}
+
+	// --- Header-based authentication
 	authHeaders := r.Header["Authorization"]
 	if len(authHeaders) == 0 {
 		rejectAuthentication("Missing Authorization")(w)
@@ -21,6 +32,7 @@ func authUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ------ BASIC Authentication
 	if authHeader[:5] == "Basic" {
 		authenticateBasic(authHeader)(w)
 	}
