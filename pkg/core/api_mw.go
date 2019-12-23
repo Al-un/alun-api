@@ -1,8 +1,9 @@
 package core
 
-import "net/http"
-
-import "time"
+import (
+	"net/http"
+	"time"
+)
 
 // AddCorsHeaders set the usual CORS headers.
 //
@@ -10,6 +11,7 @@ import "time"
 // standard adapter pattern
 func AddCorsHeaders(next http.Handler, corsConfig CorsConfig) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Default configuration is quite loose...
 		corsAllowedHosts := "*"
 		corsAllowedHeaders := "*"
 		corsAllowedMethods := "*"
@@ -28,8 +30,12 @@ func AddCorsHeaders(next http.Handler, corsConfig CorsConfig) http.Handler {
 		w.Header().Set("Access-Control-Allow-Methods", corsAllowedMethods)
 		w.Header().Set("Access-Control-Allow-Headers", corsAllowedHeaders)
 
-		// Next
-		next.ServeHTTP(w, r)
+		// Proceed for non-preflight requests only
+		if r.Method != "OPTIONS" {
+			next.ServeHTTP(w, r)
+		} else {
+			// Handle OPTIONS requests here
+		}
 	})
 }
 
@@ -52,6 +58,6 @@ func LoggerInOutRequest(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 
 		elapsed := time.Since(start)
-		coreLogger.Info("Request to %s handled in %v", r.URL.Path, elapsed)
+		coreLogger.Info("Request %s:%s handled in %v", r.Method, r.URL.Path, elapsed)
 	})
 }

@@ -126,6 +126,21 @@ func (api *API) addEndpoint(endpoint APIEndpoint) {
 			endpoint.httpMethod, api.root, endpoint.version, endpoint.url)
 	}
 
+	// endpoint handler check
+	var handler http.HandlerFunc
+
+	if endpoint.publicHandler != nil {
+		// Public handler: leverage ServeHTTP method
+		handler = endpoint.publicHandler
+	} else if endpoint.protectedHandler != nil {
+		// Protected handler
+		handler = DoIfAccess(endpoint.accessChecker, endpoint.protectedHandler).ServeHTTP
+	} else {
+		// Error: missing handler
+		coreLogger.Fatal(1, "[API] Endpoint %s:%s does not have any handler", endpoint.httpMethod, endpoint.url)
+		return
+	}
+
 	// CORS config is the same for both public and protected
 	corsConfig := CorsConfig{
 		Hosts:   api.corsHosts,
@@ -133,23 +148,10 @@ func (api *API) addEndpoint(endpoint APIEndpoint) {
 		Methods: endpoint.httpMethod,
 	}
 
-	// Public handler: leverage ServeHTTP method
-	if endpoint.publicHandler != nil {
-		endpoint.handler = AddCorsHeaders(
-			endpoint.publicHandler,
-			corsConfig,
-		).ServeHTTP
-	}
+	// Apply CORS handers
+	endpoint.handler = AddCorsHeaders(handler, corsConfig).ServeHTTP
 
-	// Protected handler
-	if endpoint.protectedHandler != nil {
-		endpoint.handler = AddCorsHeaders(
-			DoIfAccess(endpoint.accessChecker, endpoint.protectedHandler),
-			corsConfig,
-		).ServeHTTP
-	}
-
-	// All good
+	// Add new endpoints to the list
 	api.endpoints = append(api.endpoints, endpoint)
 }
 
@@ -180,6 +182,20 @@ func (api *API) AddPublicEndpoint(url string, httpMethod string, version string,
 	})
 }
 
+func (api *API) applyMergedMiddlewares(h http.Handler) http.Handler {
+	// If there is no registered middleware, return a dummy Adapter
+	if len(api.middlewares) == 0 {
+		return h
+	}
+
+	// concatenated
+	for _, mw := range api.middlewares {
+		h = mw(h)
+	}
+
+	return h
+}
+
 // LoadInRouter load all API handlers into the provided routing system.
 //
 // This method aims at making the whole project framework-agonstic: if
@@ -189,25 +205,13 @@ func (api *API) AddPublicEndpoint(url string, httpMethod string, version string,
 // definition. Consequently, it is better to merge the middleware at the
 // last minute, when loading into the router
 func (api *API) LoadInRouter(router *mux.Router) {
-
-	// Start with the Identify middleware to avoid multiple IF cases
-	var finalMw = func(next http.Handler) http.Handler {
-		return next
-	}
-
-	// Add all middlewares, worst case, the finalMw remains as the initial
-	// Identify middleware
-	for _, mw := range api.middlewares {
-		finalMw = func(next http.Handler) http.Handler {
-			return finalMw(mw(next))
-		}
-	}
-
-	// Now apply those middleware to all endpoints
 	for _, endpoint := range api.endpoints {
 		routeURL := api.urlBuilder(api.root, endpoint.version, endpoint.url)
 		coreLogger.Debug("[API] \"%s\": URL <%s>", endpoint.httpMethod, routeURL)
 
-		(*router).Handle(routeURL, endpoint.handler).Methods(endpoint.httpMethod)
+		(*router).Handle(
+			routeURL,
+			api.applyMergedMiddlewares(endpoint.handler),
+		).Methods(endpoint.httpMethod, "OPTIONS")
 	}
 }
