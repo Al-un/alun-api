@@ -28,47 +28,50 @@ func (cl *ConsoleLogger) LogLevel() LogLevel {
 // Verbose prints logs in the console
 func (cl *ConsoleLogger) Verbose(format string, args ...interface{}) {
 	if cl.level.WillLog(LogLevelVerbose) {
-		cl.printf(format, args...)
+		cl.printf(LogLevelVerbose, format, args...)
 	}
 }
 
 // Debug prints logs in the console
 func (cl *ConsoleLogger) Debug(format string, args ...interface{}) {
 	if cl.level.WillLog(LogLevelDebug) {
-		cl.printf(format, args...)
+		cl.printf(LogLevelDebug, format, args...)
 	}
 }
 
 // Info prints logs in the console
 func (cl *ConsoleLogger) Info(format string, args ...interface{}) {
 	if cl.level.WillLog(LogLevelInfo) {
-		cl.printf(format, args...)
+		cl.printf(LogLevelInfo, format, args...)
 	}
 }
 
 // Warn prints logs in the console
 func (cl *ConsoleLogger) Warn(format string, args ...interface{}) {
 	if cl.level.WillLog(LogLevelWarn) {
-		cl.printf(format, args...)
+		cl.printf(LogLevelWarn, format, args...)
 	}
 }
 
 // Error prints logs in the console
 func (cl *ConsoleLogger) Error(format string, args ...interface{}) {
 	if cl.level.WillLog(LogLevelError) {
-		cl.printf(format, args...)
+		cl.printf(LogLevelError, format, args...)
 	}
 }
 
 // Fatal is MAYDAY MAYDAY
+//
+// Fatal mimics the behaviour of `log.Fatalf` with a custom exit code
 func (cl *ConsoleLogger) Fatal(exitCode int, format string, args ...interface{}) {
-	cl.printf(format, args...)
+	cl.printf(LogLevelFatal, format, args...)
 
 	os.Exit(exitCode)
 }
 
-func (cl *ConsoleLogger) printf(format string, args ...interface{}) {
-	text := fmt.Sprintf("[%s] %s\n", cl.level.name, format)
+// Local helper specific to console logging
+func (cl *ConsoleLogger) printf(level LogLevel, format string, args ...interface{}) {
+	text := fmt.Sprintf("[%s] %s\n", level.name, format)
 
 	if len(args) > 0 {
 		log.Printf(text, args...)

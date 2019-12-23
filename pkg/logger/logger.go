@@ -74,3 +74,9 @@ var LogLevelError = LogLevel{
 	name:  "ERROR",
 	order: 15,
 }
+
+// LogLevelFatal is "Holy cow, we're fucked"
+var LogLevelFatal = LogLevel{
+	name:  "FATAL",
+	order: 9000, // over 9000 !!
+}
