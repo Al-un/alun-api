@@ -59,6 +59,19 @@ func findUserByUsernamePassword(username string, clearPassword string) (User, er
 	return authUser.extractUser(), nil
 }
 
+func isUsernameAlreadyRegistered(username string) (bool, error) {
+	filter := bson.M{"username": username}
+
+	userCount, err := dbUserCollection.CountDocuments(context.TODO(), filter)
+
+	if err != nil {
+		coreLogger.Info("Error when counting user with username %s %v", username, err)
+		return false, err
+	}
+
+	return userCount > 0, nil
+}
+
 // findUserById fetches an user for a given ID
 func findUserByID(userID string) (User, error) {
 	var user User

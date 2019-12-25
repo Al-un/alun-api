@@ -52,18 +52,18 @@ func generateJWT(user User) (token, error) {
 // Returns:
 // - JwtClaims 	: if token is present and valid
 // - int			: an `authStatus` code if some check already fails
-func decodeJWT(r *http.Request) (*JwtClaims, AccessCheckStatus) {
+func decodeJWT(r *http.Request) (*JwtClaims, *ServiceMessage) {
 	// Fetch the Authorization header
 	authHeaders := r.Header["Authorization"]
 	if len(authHeaders) == 0 {
-		return nil, accessCheckStatuses.isAuthorizationMissing
+		return nil, isAuthorized
 	}
 	authHeader := authHeaders[0]
 	if len(authHeader) == 0 {
-		return nil, accessCheckStatuses.isAuthorizationMissing
+		return nil, isAuthorizationMissing
 	}
 	if authHeader[:6] != "Bearer" {
-		return nil, accessCheckStatuses.isAuthorizationInvalid
+		return nil, isAuthorizationInvalid
 	}
 
 	// Get the header value and strip "Bearer " out
@@ -93,31 +93,31 @@ func decodeJWT(r *http.Request) (*JwtClaims, AccessCheckStatus) {
 			if login.Token.Status != tokenStatusActive {
 				switch login.Token.Status {
 				case tokenStatusLogout:
-					return nil, accessCheckStatuses.isTokenLogout
+					return nil, isTokenLogout
 				case tokenStatusExpired:
-					return nil, accessCheckStatuses.isTokenExpired
+					return nil, isTokenExpired
 				case tokenStatusInvalidated:
 				default:
-					return nil, accessCheckStatuses.isTokenInvalidated
+					return nil, isTokenInvalidated
 				}
 			}
 
-			return claims, accessCheckStatuses.isAuthorized
+			return claims, isAuthorized
 		}
 
 		if ve, ok := err.(*jwt.ValidationError); ok {
 			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
 				// Invalid format?
-				return nil, accessCheckStatuses.isTokenMalformed
+				return nil, isTokenMalformed
 			} else if ve.Errors&jwt.ValidationErrorExpired != 0 {
 				// Track in DB that token is expired
 				invalidateToken(tokenString, tokenStatusExpired)
-				return nil, accessCheckStatuses.isTokenExpired
+				return nil, isTokenExpired
 			}
 		}
 
-		return claims, accessCheckStatuses.isTokenInvalid
+		return claims, isTokenInvalid
 	}
 
-	return nil, accessCheckStatuses.isUnknownError
+	return nil, isUnknownError
 }

@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/json"
 	"net/http"
 )
 
@@ -42,28 +41,21 @@ func DoIfAccess(canAccess AccessChecker, authenticatedHandler AuthenticatedHandl
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		var claims JwtClaims
-		claimsRef, checkStatus := decodeJWT(r)
+		claimsRef, checkServMsg := decodeJWT(r)
 		if claimsRef != nil {
 			claims = *claimsRef
 		}
 
-		if checkStatus.HTTPStatus != 0 {
-			handleInvalidToken(w, checkStatus)
+		if checkServMsg.HTTPStatus != 0 {
+			checkServMsg.Write(w, r)
 			return
 		}
 
 		if canAccess(r, claims) {
 			authenticatedHandler(w, r, claims)
 		} else {
-			handleInvalidToken(w, accessCheckStatuses.isNotAuthorized)
+			isNotAuthorized.Write(w, r)
 		}
 
 	})
-}
-
-// handleInvalidToken is an utility to handle a request with an invalid
-// token / authorization header / ...
-func handleInvalidToken(w http.ResponseWriter, checkStatus AccessCheckStatus) {
-	w.WriteHeader(checkStatus.HTTPStatus)
-	json.NewEncoder(w).Encode(checkStatus)
 }

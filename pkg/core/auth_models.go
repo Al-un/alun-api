@@ -9,36 +9,6 @@ import (
 )
 
 // ----------------------------------------------------------------------------
-//	Constants
-// ----------------------------------------------------------------------------
-
-// accessCheckStatuses ensures consistency between authorization check returned
-// code
-var accessCheckStatuses = struct {
-	isAuthorized           AccessCheckStatus // All good
-	isNotAuthorized        AccessCheckStatus // Token is all good but nope
-	isTokenExpired         AccessCheckStatus // Timing is everything
-	isTokenMalformed       AccessCheckStatus // What the hell was sent?
-	isTokenInvalid         AccessCheckStatus // Unknown Token parsing error
-	isTokenInvalidated     AccessCheckStatus // Token has been manually invalidated
-	isTokenLogout          AccessCheckStatus // Token is already logged out
-	isAuthorizationMissing AccessCheckStatus // Hey, you need to send something!
-	isAuthorizationInvalid AccessCheckStatus // You need to send something correct
-	isUnknownError         AccessCheckStatus // I just don't know
-}{
-	isAuthorized:           AccessCheckStatus{HTTPStatus: 0, Message: ""},
-	isNotAuthorized:        AccessCheckStatus{HTTPStatus: http.StatusUnauthorized, Message: "Not authorized"},
-	isTokenExpired:         AccessCheckStatus{HTTPStatus: http.StatusForbidden, Message: "Token is expired"},
-	isTokenMalformed:       AccessCheckStatus{HTTPStatus: http.StatusForbidden, Message: "Token is malformed"},
-	isTokenInvalid:         AccessCheckStatus{HTTPStatus: http.StatusForbidden, Message: "Token is just invalid"},
-	isTokenInvalidated:     AccessCheckStatus{HTTPStatus: http.StatusForbidden, Message: "Token has been invalidated"},
-	isTokenLogout:          AccessCheckStatus{HTTPStatus: http.StatusForbidden, Message: "Token is already logged out"},
-	isAuthorizationMissing: AccessCheckStatus{HTTPStatus: http.StatusForbidden, Message: "Authorization header is missing"},
-	isAuthorizationInvalid: AccessCheckStatus{HTTPStatus: http.StatusForbidden, Message: "Authorization header must start with \"Bearer \""},
-	isUnknownError:         AccessCheckStatus{HTTPStatus: http.StatusForbidden, Message: "Unknown error during Authorization check"},
-}
-
-// ----------------------------------------------------------------------------
 //	Types
 // ----------------------------------------------------------------------------
 
@@ -105,17 +75,6 @@ type Login struct {
 	Timestamp time.Time          `json:"timestamp" bson:"timestamp"`        // Login timestamp
 	UserID    primitive.ObjectID `json:"userId" bson:"userId"`              // Logged-in user, should match the token of the token :)
 	Token     token              `json:"token" bson:"token"`                // Token generated during login
-}
-
-// AccessCheckStatus defines an authorisation check result, essentially,
-// about the failed checked if the HTTP status is not 0
-//
-// It is defined by the HTTP status code to return as well as the message to
-// send back.
-// By convention, `HTTPStatus = 0` means that the check is somewhat successful
-type AccessCheckStatus struct {
-	HTTPStatus int    `json:"-"`
-	Message    string `json:"message"`
 }
 
 // AuthenticatedHandler is meant to be the core logic of the handler with the user

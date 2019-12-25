@@ -53,6 +53,12 @@ func registerUser(w http.ResponseWriter, r *http.Request) {
 
 	coreLogger.Verbose("Registering user %v", creatingUser)
 
+	usernameAlreadyTaken, err := isUsernameAlreadyRegistered(creatingUser.Username)
+	if usernameAlreadyTaken {
+		hasUsernameAlreadyTaken.Write(w, r)
+		return
+	}
+
 	createdUser, err := createUser(creatingUser)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -61,7 +67,6 @@ func registerUser(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(createdUser)
-
 }
 
 // GetUser fetch some user info. Password should be omitted
