@@ -38,6 +38,14 @@ func authUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func logoutUser(w http.ResponseWriter, r *http.Request, claims JwtClaims) {
+	// Token is supposed to be here and valid
+	tokenString := r.Header["Authorization"][0][7:]
+	invalidateToken(tokenString, tokenStatusLogout)
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // RegisterUser create a new user. Username does not have to be unique
 func registerUser(w http.ResponseWriter, r *http.Request) {
 	var creatingUser authenticatedUser
@@ -72,7 +80,7 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request, claims JwtClaims) 
 	json.NewDecoder(r.Body).Decode(&updatingUser)
 
 	userID := mux.Vars(r)["userId"]
-	result := updateUser(userID, updatingUser)
+	result, _ := updateUser(userID, updatingUser)
 
 	json.NewEncoder(w).Encode(result)
 }

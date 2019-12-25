@@ -21,6 +21,7 @@ var accessCheckStatuses = struct {
 	isTokenMalformed       AccessCheckStatus // What the hell was sent?
 	isTokenInvalid         AccessCheckStatus // Unknown Token parsing error
 	isTokenInvalidated     AccessCheckStatus // Token has been manually invalidated
+	isTokenLogout          AccessCheckStatus // Token is already logged out
 	isAuthorizationMissing AccessCheckStatus // Hey, you need to send something!
 	isAuthorizationInvalid AccessCheckStatus // You need to send something correct
 	isUnknownError         AccessCheckStatus // I just don't know
@@ -31,6 +32,7 @@ var accessCheckStatuses = struct {
 	isTokenMalformed:       AccessCheckStatus{HTTPStatus: http.StatusForbidden, Message: "Token is malformed"},
 	isTokenInvalid:         AccessCheckStatus{HTTPStatus: http.StatusForbidden, Message: "Token is just invalid"},
 	isTokenInvalidated:     AccessCheckStatus{HTTPStatus: http.StatusForbidden, Message: "Token has been invalidated"},
+	isTokenLogout:          AccessCheckStatus{HTTPStatus: http.StatusForbidden, Message: "Token is already logged out"},
 	isAuthorizationMissing: AccessCheckStatus{HTTPStatus: http.StatusForbidden, Message: "Authorization header is missing"},
 	isAuthorizationInvalid: AccessCheckStatus{HTTPStatus: http.StatusForbidden, Message: "Authorization header must start with \"Bearer \""},
 	isUnknownError:         AccessCheckStatus{HTTPStatus: http.StatusForbidden, Message: "Unknown error during Authorization check"},
@@ -85,8 +87,13 @@ type JwtClaims struct {
 type token struct {
 	Jwt       string    `json:"jwt" bson:"jwt,omitempty"`                       // Stringified JWT
 	ExpiresOn time.Time `json:"expiresOn,omitempty" bson:"expiresOn,omitempty"` // Convenience for checking token expiration
-	IsInvalid bool      `json:"isInvalid" bson:"isInvalid"`                     // Token is expired or invalidated by user
+	Status    int       `json:"status" bson:"status"`                           // Token status
 }
+
+const tokenStatusActive = 0       // Token is still active
+const tokenStatusLogout = 1       // Token has been disabled by an user logout
+const tokenStatusExpired = 2      // Token has expired
+const tokenStatusInvalidated = 10 // Token has been manually disabled by user
 
 // Login tracks user login and associated generated token.
 //

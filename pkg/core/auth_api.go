@@ -23,7 +23,8 @@ var isAdminOrOwnUser = func(r *http.Request, jwtClaims JwtClaims) bool {
 func init() {
 	AuthAPI = NewAPI("users")
 
-	AuthAPI.AddPublicEndpoint("auth", "POST", "v1", authUser)
+	AuthAPI.AddPublicEndpoint("login", "POST", "v1", authUser)
+	AuthAPI.AddProtectedEndpoint("logout", "POST", "v1", CheckIfLogged, logoutUser)
 	AuthAPI.AddPublicEndpoint("register", "POST", "v1", registerUser)
 	AuthAPI.AddProtectedEndpoint("detail/{userId}", "GET", "v1", isAdminOrOwnUser, handleGetUser)
 	AuthAPI.AddProtectedEndpoint("detail/{userId}", "PUT", "v1", isAdminOrOwnUser, handleUpdateUser)

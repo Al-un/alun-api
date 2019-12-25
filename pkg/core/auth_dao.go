@@ -76,7 +76,7 @@ func findUserByID(userID string) (User, error) {
 // TODO: returns an array?
 func findLoginWithValidToken(user User) (Login, error) {
 	var login Login
-	filter := bson.M{"userId": user.ID, "token.isInvalid": false}
+	filter := bson.M{"userId": user.ID, "token.status": tokenStatusActive}
 
 	if err := dbUserLoginCollection.FindOne(context.TODO(), filter).Decode(&login); err != nil {
 		return Login{}, err
@@ -140,7 +140,7 @@ func createLogin(login Login) (Login, error) {
 
 // https://www.mongodb.com/blog/post/quick-start-golang--mongodb--how-to-update-documents
 // https://kb.objectrocket.com/mongo-db/how-to-update-a-mongodb-document-using-the-golang-driver-458
-func updateUser(userID string, user User) *mongo.UpdateResult {
+func updateUser(userID string, user User) (User, error) {
 	id, _ := primitive.ObjectIDFromHex(userID)
 	filter := bson.M{"_id": id}
 
@@ -151,23 +151,31 @@ func updateUser(userID string, user User) *mongo.UpdateResult {
 		},
 	}
 
-	result, _ := dbUserCollection.UpdateOne(context.TODO(), filter, update)
-	coreLogger.Debug("[User] Creating user <%v> with result <%v>", user, result)
-	return result
+	var updatedUser User
+
+	if err := dbUserCollection.FindOneAndUpdate(context.TODO(), filter, update).Decode(&updatedUser); err != nil {
+		return User{}, err
+	}
+	coreLogger.Debug("[User] Creating user <%v> with result <%v>", user, updatedUser)
+	return updatedUser, nil
 }
 
-// invalidateLogin set the isInvalid flag to true based on a JWT
-func invalidateLogin(jwt string) *mongo.UpdateResult {
+// invalidateToken invalidates the login for the given token by setting up a non-active
+// status on the token
+func invalidateToken(jwt string, invalidStatusCode int) (Login, error) {
 	filter := bson.M{"token.jwt": jwt}
 	update := bson.M{
 		"$set": bson.M{
-			"token.isInvalid": true,
+			"token.status": invalidStatusCode,
 		},
 	}
 
-	result, _ := dbUserLoginCollection.UpdateOne(context.TODO(), filter, update)
-	coreLogger.Debug("[User] Invalidate <%v> with result <%v>", jwt, result)
-	return result
+	var invalidatedLogin Login
+	if err := dbUserLoginCollection.FindOneAndUpdate(context.TODO(), filter, update).Decode(&invalidatedLogin); err != nil {
+		return Login{}, err
+	}
+	coreLogger.Debug("[User] Invalidate <%v> with result <%v>", jwt, invalidatedLogin)
+	return invalidatedLogin, nil
 
 }
 

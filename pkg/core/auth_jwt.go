@@ -8,6 +8,8 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+const jwtClaimsIssuer = "api.al-un.fr"
+
 // generateJWT generate a JWT for a specific user with claims basically representing
 // the user properties. List of claims is based on https://tools.ietf.org/html/rfc7519
 // found through https://auth0.com/docs/tokens/jwt-claims. Tokens are valid 60 days
@@ -25,7 +27,7 @@ func generateJWT(user User) (token, error) {
 		UserID:  user.ID.Hex(),
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: tokenExpiration.Unix(),
-			Issuer:    "api.al-un.fr",
+			Issuer:    jwtClaimsIssuer,
 			IssuedAt:  time.Now().Unix(),
 			Subject:   user.Username,
 		},
@@ -40,7 +42,7 @@ func generateJWT(user User) (token, error) {
 		return token{}, err
 	}
 
-	return token{Jwt: tokenString, ExpiresOn: tokenExpiration, IsInvalid: false}, nil
+	return token{Jwt: tokenString, ExpiresOn: tokenExpiration, Status: tokenStatusActive}, nil
 }
 
 // decodeJWT extracts the claims from a JWT if it is valid.
@@ -82,23 +84,34 @@ func decodeJWT(r *http.Request) (*JwtClaims, AccessCheckStatus) {
 		// Check token validity
 		if token.Valid {
 
-			// // check if token has been invalidated
-			// login, err := findLoginByToken(tokenString)
-			// if err != nil {
-			// 	fmt.Println("[User] error when getting login by token: ", err)
-			// }
+			// check if token has been invalidated
+			login, err := findLoginByToken(tokenString)
+			if err != nil {
+				fmt.Println("[User] error when getting login by token: ", err)
+			}
 
-			// if login.Token.IsInvalid {
-			// 	return &claims, authStatus.isTokenInvalidated
-			// }
+			if login.Token.Status != tokenStatusActive {
+				switch login.Token.Status {
+				case tokenStatusLogout:
+					return nil, accessCheckStatuses.isTokenLogout
+				case tokenStatusExpired:
+					return nil, accessCheckStatuses.isTokenExpired
+				case tokenStatusInvalidated:
+				default:
+					return nil, accessCheckStatuses.isTokenInvalidated
+				}
+			}
 
 			return claims, accessCheckStatuses.isAuthorized
 		}
 
 		if ve, ok := err.(*jwt.ValidationError); ok {
 			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+				// Invalid format?
 				return nil, accessCheckStatuses.isTokenMalformed
 			} else if ve.Errors&jwt.ValidationErrorExpired != 0 {
+				// Track in DB that token is expired
+				invalidateToken(tokenString, tokenStatusExpired)
 				return nil, accessCheckStatuses.isTokenExpired
 			}
 		}
