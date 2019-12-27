@@ -3,8 +3,6 @@ package core
 import (
 	"encoding/json"
 	"net/http"
-
-	"github.com/gorilla/mux"
 )
 
 // authUser authenticates user with BASIC methods or other
@@ -61,8 +59,8 @@ func registerUser(w http.ResponseWriter, r *http.Request) {
 
 	createdUser, err := createUser(creatingUser)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(err)
+		HandleServerError(w, r, err)
+		return
 	}
 
 	w.WriteHeader(http.StatusCreated)
@@ -71,7 +69,7 @@ func registerUser(w http.ResponseWriter, r *http.Request) {
 
 // GetUser fetch some user info. Password should be omitted
 func handleGetUser(w http.ResponseWriter, r *http.Request, claims JwtClaims) {
-	userID := mux.Vars(r)["userId"]
+	userID := GetVar(r, "userId")
 	user, err := findUserByID(userID)
 	if err != nil {
 		coreLogger.Debug("[User] findByID error: ", err)
@@ -84,14 +82,18 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request, claims JwtClaims) 
 	var updatingUser User
 	json.NewDecoder(r.Body).Decode(&updatingUser)
 
-	userID := mux.Vars(r)["userId"]
-	result, _ := updateUser(userID, updatingUser)
+	userID := GetVar(r, "userId")
+	result, err := updateUser(userID, updatingUser)
+	if err != nil {
+		HandleServerError(w, r, err)
+		return
+	}
 
 	json.NewEncoder(w).Encode(result)
 }
 
 func handleDeleteUser(w http.ResponseWriter, r *http.Request, claims JwtClaims) {
-	userID := mux.Vars(r)["userId"]
+	userID := GetVar(r, "userId")
 	deleteUser(userID)
 
 	w.WriteHeader(http.StatusNoContent)

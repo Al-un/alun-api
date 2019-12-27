@@ -20,15 +20,24 @@ type TrackedEntity struct {
 	ModifiedOn time.Time          `json:"modifiedOn,omitempty" bson:"mofidiedOn,omitempty"`
 }
 
+// PrepareForUpdate updates modification related field before any update based on
+// the UserID provided by the claims
+func (t *TrackedEntity) PrepareForUpdate(claims JwtClaims) {
+	t.ModifiedOn = time.Now()
+	userID, _ := primitive.ObjectIDFromHex(claims.UserID)
+	t.ModifiedBy = userID
+}
+
 // ServiceMessage is a token to forward the status of an action to the next function /
 // whatever handler processing it.
 //
 // While it is meant to standardize errors handling, it can also help to identify internal
 // success status thanks to its code
 type ServiceMessage struct {
-	Code       int    `json:"code"`    // Internal code: 0 is fine, any code different from 0 is an error
-	Message    string `json:"message"` // Explicit description
-	HTTPStatus int    `json:"-"`       // HTTP Status code, skipped during serialisation
+	Code       int    `json:"code"`            // Internal code: 0 is fine, any code different from 0 is an error
+	Message    string `json:"message"`         // Explicit description
+	HTTPStatus int    `json:"-"`               // HTTP Status code, skipped during serialisation
+	Error      error  `json:"error,omitempty"` // Error if any
 }
 
 // Write writes the ServiceMessage into a Http.ReponseWriter and uses the incoming request
