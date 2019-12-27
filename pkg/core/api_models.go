@@ -12,11 +12,12 @@ import (
 // 	Constants
 // ----------------------------------------------------------------------------
 
-// APIv1 is the standardisation for first version of an API endpoint
-const APIv1 string = "v1"
-
-// APIv2 is the standardisation for first version of an API endpoint
-const APIv2 string = "v2"
+const (
+	// APIv1 is the standardisation for first version of an API endpoint
+	APIv1 string = "v1"
+	// APIv2 is the standardisation for second version of an API endpoint
+	APIv2 string = "v2"
+)
 
 // ----------------------------------------------------------------------------
 // 	Types
@@ -86,7 +87,7 @@ func NewAPI(root string) *API {
 		root:        root,
 		corsHosts:   "*",
 		corsHeaders: "*",
-		endpoints:   make([]APIEndpoint, 0), // explicitely define an empty array
+		endpoints:   make([]APIEndpoint, 0), // explicitly define an empty array
 		urlBuilder:  URLDefaultBuilder,
 	}
 
@@ -117,11 +118,11 @@ func (api *API) AddMiddleware(mw EndpointAdapter) {
 // 	- httpMethod is valid
 func (api *API) addEndpoint(endpoint APIEndpoint) {
 	// httpMethod check
-	if endpoint.httpMethod != "GET" &&
-		endpoint.httpMethod != "POST" &&
-		endpoint.httpMethod != "PATCH" &&
-		endpoint.httpMethod != "PUT" &&
-		endpoint.httpMethod != "DELETE" {
+	if endpoint.httpMethod != http.MethodGet &&
+		endpoint.httpMethod != http.MethodPost &&
+		endpoint.httpMethod != http.MethodPatch &&
+		endpoint.httpMethod != http.MethodPut &&
+		endpoint.httpMethod != http.MethodDelete {
 		log.Fatalf("Cannot call 'AddHandler' an invalid method \"%s\" for URL %s/%s/%s",
 			endpoint.httpMethod, api.root, endpoint.version, endpoint.url)
 	}
@@ -204,7 +205,15 @@ func (api *API) applyMergedMiddlewares(h http.Handler) http.Handler {
 // The Middleware could have been added AFTER the different endpoints
 // definition. Consequently, it is better to merge the middleware at the
 // last minute, when loading into the router
+//
+// This method also list all endpoints and the associated HTTP methods for
+// CORS handling. Doing this way allows a single endpoint to support multiple
+// HTTP method. However, each endpoint, given a method, still need CORS headers
 func (api *API) LoadInRouter(router *mux.Router) {
+
+	// to store all endpoints URLs with the associated HTTP methods
+	corsOptionsMap := make(map[string]string)
+
 	for _, endpoint := range api.endpoints {
 		routeURL := api.urlBuilder(api.root, endpoint.version, endpoint.url)
 		coreLogger.Debug("[API] \"%s\": URL <%s>", endpoint.httpMethod, routeURL)
@@ -212,6 +221,33 @@ func (api *API) LoadInRouter(router *mux.Router) {
 		(*router).Handle(
 			routeURL,
 			api.applyMergedMiddlewares(endpoint.handler),
-		).Methods(endpoint.httpMethod, "OPTIONS")
+		).Methods(endpoint.httpMethod)
+
+		// And update CORS definitions
+		// TODO: check duplicates of HTTP methods
+		endpointDefinition, exist := corsOptionsMap[routeURL]
+		if !exist {
+			endpointDefinition = endpoint.httpMethod
+		} else {
+			// It is assumed that there is no duplicate for the moment
+			endpointDefinition = endpointDefinition + ", " + endpoint.httpMethod
+		}
+		corsOptionsMap[routeURL] = endpointDefinition
 	}
+
+	coreLogger.Verbose("%v", corsOptionsMap)
+
+	// Add CORS handlers
+	for endpoint, methods := range corsOptionsMap {
+		corsHandler := func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", api.corsHosts)
+			w.Header().Set("Access-Control-Allow-Methods", methods)
+			w.Header().Set("Access-Control-Allow-Headers", api.corsHeaders)
+
+			w.WriteHeader(http.StatusOK)
+		}
+
+		(*router).HandleFunc(endpoint, corsHandler).Methods(http.MethodOptions)
+	}
+
 }
