@@ -15,18 +15,36 @@ import (
 // collection
 type TrackedEntity struct {
 	CreatedBy  primitive.ObjectID `json:"createdBy,omitempty" bson:"createdBy,omitempty"`
-	CreatedOn  time.Time          `json:"createdOn,omitempty" bson:"createdOn,omitempty"`
+	CreatedAt  time.Time          `json:"createdOn,omitempty" bson:"createdAt,omitempty"`
 	ModifiedBy primitive.ObjectID `json:"modifiedBy,omitempty" bson:"modifiedBy,omitempty"`
-	ModifiedOn time.Time          `json:"modifiedOn,omitempty" bson:"mofidiedOn,omitempty"`
+	ModifiedAt time.Time          `json:"modifiedOn,omitempty" bson:"mofidiedAt,omitempty"`
+}
+
+// PrepareForCreate set creation related fields
+func (t *TrackedEntity) PrepareForCreate(claims JwtClaims) {
+	t.CreatedAt = time.Now()
+	userID, _ := primitive.ObjectIDFromHex(claims.UserID)
+	t.CreatedBy = userID
 }
 
 // PrepareForUpdate updates modification related field before any update based on
 // the UserID provided by the claims
 func (t *TrackedEntity) PrepareForUpdate(claims JwtClaims) {
-	t.ModifiedOn = time.Now()
+	t.ModifiedAt = time.Now()
 	userID, _ := primitive.ObjectIDFromHex(claims.UserID)
 	t.ModifiedBy = userID
 }
+
+const (
+	// TrackedCreatedBy is the createdBy key. TrackedEntity is assumed to in "bson:,inline"
+	TrackedCreatedBy = "createdBy"
+	// TrackedCreatedAt is the createdAt key. TrackedEntity is assumed to in "bson:,inline"
+	TrackedCreatedAt = "createdOn"
+	// TrackedModifiedBy is the modifiedBy key. TrackedEntity is assumed to in "bson:,inline"
+	TrackedModifiedBy = "modifiedBy"
+	// TrackedModifiedAt is the modifiedAt key. TrackedEntity is assumed to in "bson:,inline"
+	TrackedModifiedAt = "modifiedAt"
+)
 
 // ServiceMessage is a token to forward the status of an action to the next function /
 // whatever handler processing it.
