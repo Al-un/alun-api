@@ -15,9 +15,9 @@ import (
 // collection
 type TrackedEntity struct {
 	CreatedBy  primitive.ObjectID `json:"createdBy,omitempty" bson:"createdBy,omitempty"`
-	CreatedAt  time.Time          `json:"createdOn,omitempty" bson:"createdAt,omitempty"`
+	CreatedAt  time.Time          `json:"createdAt,omitempty" bson:"createdAt,omitempty"`
 	ModifiedBy primitive.ObjectID `json:"modifiedBy,omitempty" bson:"modifiedBy,omitempty"`
-	ModifiedAt time.Time          `json:"modifiedOn,omitempty" bson:"mofidiedAt,omitempty"`
+	ModifiedAt time.Time          `json:"modifiedAt,omitempty" bson:"mofidiedAt,omitempty"`
 }
 
 // PrepareForCreate set creation related fields
@@ -39,7 +39,7 @@ const (
 	// TrackedCreatedBy is the createdBy key. TrackedEntity is assumed to in "bson:,inline"
 	TrackedCreatedBy = "createdBy"
 	// TrackedCreatedAt is the createdAt key. TrackedEntity is assumed to in "bson:,inline"
-	TrackedCreatedAt = "createdOn"
+	TrackedCreatedAt = "createdAt"
 	// TrackedModifiedBy is the modifiedBy key. TrackedEntity is assumed to in "bson:,inline"
 	TrackedModifiedBy = "modifiedBy"
 	// TrackedModifiedAt is the modifiedAt key. TrackedEntity is assumed to in "bson:,inline"
