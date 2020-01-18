@@ -1,4 +1,4 @@
-package core // import github.com/Al-un/alun-api/pkg/core
+package core // import github.com/Al-un/alun-api/alun/core
 
 import (
 	"context"

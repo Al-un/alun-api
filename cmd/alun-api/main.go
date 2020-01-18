@@ -5,9 +5,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Al-un/alun-api/pkg/core"
+	"github.com/Al-un/alun-api/alun/core"
+	"github.com/Al-un/alun-api/alun/memo"
 	"github.com/Al-un/alun-api/pkg/logger"
-	"github.com/Al-un/alun-api/pkg/memo"
 )
 
 var serverPort = 8000

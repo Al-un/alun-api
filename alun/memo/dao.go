@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Al-un/alun-api/pkg/core"
+	"github.com/Al-un/alun-api/alun/core"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"

@@ -7,6 +7,8 @@ API for al-un.fr
 ## Resources
 
 - [Project layout](https://github.com/golang-standards/project-layout)
+  - `pkg/`: Code like libraries
+  - `alun/`: al-un.fr back-end
 
 ### MongoDB
 
@@ -14,16 +16,15 @@ API for al-un.fr
 - [Quick Start: Golang and MongoDB](https://www.mongodb.com/blog/post/quick-start-golang--mongodb--starting-and-setup)
 - [How to find a MongoDB document by its BSON ObjectID](https://kb.objectrocket.com/mongo-db/how-to-find-a-mongodb-document-by-its-bson-objectid-using-golang-452)
 
-
 #### Queries
 
 ```sql
 db.al_users_login.deleteMany({ "timestamp": {"$lte": new Date() } )
 db.al_users_login.deleteMany( { "timestamp": { "$lte": new Date(2999,1,1) } } )
 ```
+
 https://stackoverflow.com/a/30772989/4906586
 https://stackoverflow.com/a/47170066/4906586
-
 
 ## Heroku
 

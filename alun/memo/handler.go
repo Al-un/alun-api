@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/Al-un/alun-api/pkg/core"
+	"github.com/Al-un/alun-api/alun/core"
 )
 
 func handleCreateMemo(w http.ResponseWriter, r *http.Request, claims core.JwtClaims) {

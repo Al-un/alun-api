@@ -2,7 +2,7 @@
 package memo
 
 import (
-	"github.com/Al-un/alun-api/pkg/core"
+	"github.com/Al-un/alun-api/alun/core"
 	"github.com/Al-un/alun-api/pkg/logger"
 )
 
