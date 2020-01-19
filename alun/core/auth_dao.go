@@ -209,7 +209,7 @@ func updateUser(userID string, user User) (User, error) {
 	update := bson.M{
 		"$set": bson.M{
 			"username": user.Username,
-			"isAdmin":  user.IsAdmin,
+			// "isAdmin":  user.IsAdmin,
 		},
 	}
 
