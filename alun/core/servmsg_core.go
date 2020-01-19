@@ -92,3 +92,15 @@ var hasEmailNotAvailable = &ServiceMessage{
 	HTTPStatus: http.StatusBadRequest,
 	Message:    "Email is already taken",
 }
+
+var pwdResetTokenNotFound = &ServiceMessage{
+	Code:       10202,
+	HTTPStatus: http.StatusBadRequest,
+	Message:    "Password reset token not found",
+}
+
+var pwdResetTokenExpired = &ServiceMessage{
+	Code:       10203,
+	HTTPStatus: http.StatusBadRequest,
+	Message:    "Password reset token is expired",
+}

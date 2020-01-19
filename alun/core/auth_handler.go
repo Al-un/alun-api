@@ -91,6 +91,21 @@ func registerUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func handleChangePassword(w http.ResponseWriter, r *http.Request) {
+	var pwdChgRequest pwdChangeRequest
+	json.NewDecoder(r.Body).Decode(&pwdChgRequest)
+
+	authUser, err := changePassword(pwdChgRequest)
+	if err != nil {
+		err.Write(w, r)
+		return
+	}
+
+	coreLogger.Verbose("Password updated for %+v", authUser)
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // GetUser fetch some user info. Password should be omitted
 func handleGetUser(w http.ResponseWriter, r *http.Request, claims JwtClaims) {
 	userID := GetVar(r, "userId")

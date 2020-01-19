@@ -94,6 +94,13 @@ type pwdResetToken struct {
 	ResetType string    `json:"resetType" bson:"resetType"`
 }
 
+// pwdChangeRequest defines how a client changes an user password
+type pwdChangeRequest struct {
+	Token    string `json:"token"`
+	Password string `json:"password"`
+	Username string `json:"username"` // only for new account
+}
+
 // ----------------------------------------------------------------------------
 //	Types: Authorisation
 // ----------------------------------------------------------------------------

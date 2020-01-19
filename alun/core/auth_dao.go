@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -141,6 +142,45 @@ func createUser(user User) (User, *ServiceMessage) {
 	coreLogger.Verbose("[User] Created newUser <%+v>", newUser)
 
 	return newUser, nil
+}
+
+func changePassword(pwdChgRequest pwdChangeRequest) (authenticatedUser, *ServiceMessage) {
+
+	// Is password reset token found
+	var user User
+	filter := bson.M{"pwdResetToken.token": pwdChgRequest.Token}
+	if err := dbUserCollection.FindOne(context.TODO(), filter).Decode(&user); err != nil {
+		coreLogger.Debug(">>> %v", err)
+		return authenticatedUser{}, pwdResetTokenNotFound
+	}
+
+	// Is password reset token expired?
+	if user.PwdResetToken.ExpiresAt.Before(time.Now()) {
+		return authenticatedUser{}, pwdResetTokenExpired
+	}
+
+	// Hash password
+	hashedPassword := hashPassword(pwdChgRequest.Password)
+
+	update := bson.M{
+		// https://docs.mongodb.com/manual/reference/operator/update/set/
+		"$set": bson.M{
+			"password": hashedPassword,
+		},
+		// https://docs.mongodb.com/manual/reference/operator/update/unset/
+		"$unset": bson.M{
+			// https://stackoverflow.com/a/6852039/4906586
+			"pwdResetToken": 1,
+		},
+	}
+
+	var updatedUser authenticatedUser
+
+	if err := dbUserCollection.FindOneAndUpdate(context.TODO(), filter, update).Decode(&updatedUser); err != nil {
+		return authenticatedUser{}, NewServiceErrorMessage(err)
+	}
+
+	return updatedUser, nil
 }
 
 // createLogin just saves the login in the DB
