@@ -37,8 +37,8 @@ func hashPassword(clearPassword string) string {
 	return hashedPassword
 }
 
-func authenticateCredentials(username string, clearPassword string) func(http.ResponseWriter) {
-	user, err := findUserByUsernamePassword(username, clearPassword)
+func authenticateCredentials(email string, clearPassword string) func(http.ResponseWriter) {
+	user, err := findUserByEmailPassword(email, clearPassword)
 
 	if err != nil {
 		return rejectAuthentication("Invalid credentials")
@@ -55,7 +55,7 @@ func authenticateCredentials(username string, clearPassword string) func(http.Re
 			return rejectAuthentication("Error when generating JWT")
 		}
 
-		login = Login{UserID: user.ID, Token: jwt}
+		login = Login{UserID: user.ID, Token: jwt, Timestamp: time.Now()}
 		createLogin(login)
 	}
 
@@ -82,8 +82,8 @@ func authenticateBasic(authHeader string) func(http.ResponseWriter) {
 		return rejectAuthentication("Invalid authorization header")
 	}
 
-	username, password := basicCredentials[0], basicCredentials[1]
-	coreLogger.Verbose("Basic authentication with <%s/%s>", username, password)
+	email, password := basicCredentials[0], basicCredentials[1]
+	coreLogger.Verbose("Basic authentication with <%s/%s>", email, password)
 
-	return authenticateCredentials(username, password)
+	return authenticateCredentials(email, password)
 }

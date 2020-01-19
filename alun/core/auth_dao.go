@@ -43,19 +43,19 @@ func init() {
 
 // ---------- CRUD ------------------------------------------------------------
 
-// findUser fetches an user for a given username and CLEAR password
-func findUserByUsernamePassword(username string, clearPassword string) (User, error) {
+// findUser fetches an user for a given email and CLEAR password
+func findUserByEmailPassword(email string, clearPassword string) (User, error) {
 	var authUser authenticatedUser
 	var hashedPassword = hashPassword(clearPassword)
 
-	filter := bson.M{"username": username, "password": hashedPassword}
+	filter := bson.M{"email": email, "password": hashedPassword}
 	if err := dbUserCollection.FindOne(context.TODO(), filter).Decode(&authUser); err != nil {
 		coreLogger.Verbose("Credentials %s/%s (hashed: %s) are NOT valid T_T due to error: %v",
-			username, clearPassword, hashedPassword, err)
+			email, clearPassword, hashedPassword, err)
 		return User{}, err
 	}
 
-	coreLogger.Verbose("Credentials %s/%s are valid \\o/", username, clearPassword)
+	coreLogger.Verbose("Credentials %s/%s are valid \\o/", email, clearPassword)
 
 	return authUser.User, nil
 }
