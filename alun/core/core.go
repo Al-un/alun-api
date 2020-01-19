@@ -7,6 +7,19 @@
 // the API related code with it.
 package core
 
-import "github.com/Al-un/alun-api/pkg/logger"
+import (
+	"os"
+
+	"github.com/Al-un/alun-api/alun/utils"
+	"github.com/Al-un/alun-api/pkg/logger"
+)
 
 var coreLogger = logger.NewConsoleLogger(logger.LogLevelVerbose)
+
+var (
+	clientDomain string
+)
+
+func init() {
+	clientDomain = os.Getenv(utils.EnvVarClientDomain)
+}

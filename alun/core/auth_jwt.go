@@ -19,7 +19,7 @@ const jwtClaimsIssuer = "api.al-un.fr"
 //
 // Generate Token	: https://godoc.org/github.com/dgrijalva/jwt-go#example-New--Hmac
 // Custom claims	: https://godoc.org/github.com/dgrijalva/jwt-go#NewWithClaims
-func generateJWT(user User) (token, error) {
+func generateJWT(user User) (authToken, error) {
 	tokenExpiration := time.Now().Add(time.Hour * 24 * 60)
 
 	userClaims := JwtClaims{
@@ -39,10 +39,10 @@ func generateJWT(user User) (token, error) {
 
 	if err != nil {
 		coreLogger.Warn("[JWT generation] error: %s", err.Error())
-		return token{}, err
+		return authToken{}, err
 	}
 
-	return token{Jwt: tokenString, ExpiresOn: tokenExpiration, Status: tokenStatusActive}, nil
+	return authToken{Jwt: tokenString, ExpiresOn: tokenExpiration, Status: tokenStatusActive}, nil
 }
 
 // decodeJWT extracts the claims from a JWT if it is valid.

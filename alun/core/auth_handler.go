@@ -2,7 +2,10 @@ package core
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+
+	"github.com/Al-un/alun-api/alun/utils"
 )
 
 // authUser authenticates user with BASIC methods or other
@@ -44,27 +47,48 @@ func logoutUser(w http.ResponseWriter, r *http.Request, claims JwtClaims) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// RegisterUser create a new user. Username does not have to be unique
+// RegisterUser create a new user.
+//
+// Registration is based on a single email address to which a confirmation email
+// will be sent to. With the provided token, user can set up a password
 func registerUser(w http.ResponseWriter, r *http.Request) {
-	var creatingUser authenticatedUser
-	json.NewDecoder(r.Body).Decode(&creatingUser)
+	var registeringUser RegisteringUser
+	json.NewDecoder(r.Body).Decode(&registeringUser)
 
-	coreLogger.Verbose("Registering user %v", creatingUser)
-
-	usernameAlreadyTaken, err := isUsernameAlreadyRegistered(creatingUser.Username)
-	if usernameAlreadyTaken {
-		hasUsernameAlreadyTaken.Write(w, r)
+	// TODO better email check
+	if registeringUser.Email == "" {
+		hasNoValidEmail.Write(w, r)
 		return
 	}
 
-	createdUser, err := createUser(creatingUser)
+	// Prepare a proper User
+	toCreateUser, err := registeringUser.prepareForCreation()
 	if err != nil {
 		HandleServerError(w, r, err)
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(createdUser)
+	// Email unicity is checked by DAO
+	createdUser, errMsg := createUser(toCreateUser)
+	if errMsg != nil {
+		errMsg.Write(w, r)
+		return
+	}
+
+	// Email: Password setup url
+	subject := fmt.Sprintf("Welcome to %s", clientDomain)
+	destURL := fmt.Sprintf("%s/user/password/?t=%s",
+		clientDomain, createdUser.PwdResetToken.Token)
+
+	// No go-routine: wait for email being sent before answering the client
+	utils.SendNoReplyEmail(
+		[]string{toCreateUser.Email},
+		subject,
+		"user_registration",
+		struct{ URL string }{URL: destURL},
+	)
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // GetUser fetch some user info. Password should be omitted

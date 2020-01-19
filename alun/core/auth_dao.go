@@ -56,17 +56,16 @@ func findUserByUsernamePassword(username string, clearPassword string) (User, er
 
 	coreLogger.Verbose("Credentials %s/%s are valid \\o/", username, clearPassword)
 
-	return authUser.extractUser(), nil
+	return authUser.User, nil
 }
 
-func isUsernameAlreadyRegistered(username string) (bool, error) {
-	filter := bson.M{"username": username}
-
+func isEmailAlreadyRegistered(email string) (bool, *ServiceMessage) {
+	filter := bson.M{"email": email}
 	userCount, err := dbUserCollection.CountDocuments(context.TODO(), filter)
 
 	if err != nil {
-		coreLogger.Info("Error when counting user with username %s %v", username, err)
-		return false, err
+		coreLogger.Info("Error when counting user with email %s %v", email, err)
+		return false, NewServiceErrorMessage(err)
 	}
 
 	return userCount > 0, nil
@@ -109,27 +108,37 @@ func findLoginByToken(jwt string) (Login, error) {
 	return login, nil
 }
 
-// createUser creates the user assuming that passowrd is not hashed yet
+// createUser creates the user with only an email. The email is checked is
 //
-// returns new user ID
-func createUser(user authenticatedUser) (User, error) {
-	clearPassword := user.Password
-	var hashedPassword = hashPassword(clearPassword)
-	user.Password = hashedPassword
+// returns newly created user
+func createUser(user User) (User, *ServiceMessage) {
 
+	coreLogger.Verbose("Checking %+v", user)
+
+	// Check if email is already registered
+	isEmailAlreadyTaken, errMsg := isEmailAlreadyRegistered(user.Email)
+	if errMsg != nil {
+		return User{}, errMsg
+	}
+
+	// Nut
+	if isEmailAlreadyTaken {
+		return User{}, hasEmailNotAvailable
+	}
+
+	coreLogger.Verbose("Creating %+v", user)
 	createdUser, err := dbUserCollection.InsertOne(context.TODO(), user)
 	if err != nil {
-		coreLogger.Warn("Error when creating user of username %s: %v", user.Username, err)
-		return User{}, err
+		coreLogger.Warn("Error when creating user of email %s: %v", user.Email, err)
+		return User{}, NewServiceErrorMessage(err)
 	}
 
 	var newUser User
 	filter := bson.M{"_id": createdUser.InsertedID}
 	if err := dbUserCollection.FindOne(context.TODO(), filter).Decode(&newUser); err != nil {
-		return User{}, err
+		return User{}, NewServiceErrorMessage(err)
 	}
-
-	coreLogger.Verbose("[User] Creating user <%s/%s> with newId <%v>", user.Username, clearPassword, newUser.ID)
+	coreLogger.Verbose("[User] Created newUser <%+v>", newUser)
 
 	return newUser, nil
 }

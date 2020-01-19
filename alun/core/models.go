@@ -68,3 +68,12 @@ func (msg *ServiceMessage) Write(rw http.ResponseWriter, req *http.Request) {
 	// Log
 	coreLogger.Info("[%d] %s => %d %s", msg.Code, req.URL.Path, msg.HTTPStatus, msg.Message)
 }
+
+// NewServiceErrorMessage generate a ServiceMessage from an error. By default, status
+// error is 500
+func NewServiceErrorMessage(err error) *ServiceMessage {
+	return &ServiceMessage{
+		HTTPStatus: 500,
+		Error:      err,
+	}
+}
