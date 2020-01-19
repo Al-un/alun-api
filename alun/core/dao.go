@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Al-un/alun-api/alun/utils"
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -16,22 +18,24 @@ import (
 
 // ----- MongoDB exported variables -------------------------------------------
 
-// MongoClient is an instance representing the connection to the database
-var MongoClient *mongo.Client
-
-// MongoDatabase is an instance representing the single DB for this project
-var MongoDatabase *mongo.Database
+var (
+	// MongoClient is an instance representing the connection to the database
+	MongoClient *mongo.Client
+	// MongoDatabase is an instance representing the single DB for this project
+	MongoDatabase *mongo.Database
+)
 
 // ----- MongoDB local variables -----------------------------------------------
 
 const dbDefaulMongoURI = "mongodb://localhost:27017/alun"
 
-// dbConnectionString to locate the DB
-var dbConnectionString string
-
-// dbName : database name for this project. All collections will be stored in the
-// same database for convenience
-var dbName string
+var (
+	// dbConnectionString to locate the DB
+	dbConnectionString string
+	// dbName : database name for this project. All collections will be stored in the
+	// same database for convenience
+	dbName string
+)
 
 // ----------------------------------------------------------------------------
 // Initialisation
@@ -44,19 +48,28 @@ func init() {
 	}
 }
 
+// initDao sets up the connection with the database.
+//
+// This method can be called when initializing other package, such as the authentication
+// information (user and stuff). Consequently, the dotenv reading must occur in this
+// method and not in the `init()` of this package
 func initDao() {
 	// Variable initialisation
 	// mongodb://heroku_rl0mksb2:ekaett1c181uem6kbph1tg53fo@ds241408.mlab.com:41408/heroku_rl0mksb2
 
-	if mongoDbURI := os.Getenv("MONGODB_URI"); mongoDbURI != "" {
-		// Loading for Heroku
-		dbConnectionString, dbName = parseMongoDbURI(mongoDbURI)
-		coreLogger.Debug("[MongoDB] Loading values from MONGODB_URI")
-	} else {
-		// Loading for local development
-		dbConnectionString, dbName = parseMongoDbURI(dbDefaulMongoURI)
-		coreLogger.Debug("[MongoDB] Loading default values [%v][%v]", dbConnectionString, dbName)
+	// Load dotenv
+	err := godotenv.Load()
+	if err != nil {
+		coreLogger.Fatal(2, "Error when loading .env file:\n%v", err)
 	}
+
+	// Load URI
+	mongoDbURI := os.Getenv(utils.EnvVarMongoDbURI)
+	if mongoDbURI == "" {
+		coreLogger.Debug("[MongoDB] Loading default MongoDB URI %s", dbDefaulMongoURI)
+	}
+	dbConnectionString, dbName = parseMongoDbURI(mongoDbURI)
+	coreLogger.Debug("[MongoDB] Loading connection info [%v][%v]", dbConnectionString, dbName)
 
 	// Client options
 	clientOptions := options.Client().ApplyURI(dbConnectionString)
@@ -64,7 +77,7 @@ func initDao() {
 	// Try to connect to DB and init the MongoClient
 	MongoClient, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
-		log.Fatal("[MongoDB][ERROR] connection error: ", err)
+		coreLogger.Fatal(2, "[MongoDB][ERROR] connection to %s failed:\n%v", dbConnectionString, err)
 	}
 
 	// Check the connection

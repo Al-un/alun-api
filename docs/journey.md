@@ -63,3 +63,13 @@ https://stackoverflow.com/a/58359989/4906586
 > db.al_memos.deleteMany({"trackedentity.createdOn": null })
 { "acknowledged" : true, "deletedCount" : 4 }
 ```
+
+## 08 Environment variables
+
+https://github.com/joho/godotenv
+
+```sh
+go get github.com/joho/godotenv
+```
+
+Need to load per package
