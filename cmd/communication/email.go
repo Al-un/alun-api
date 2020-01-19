@@ -4,26 +4,70 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 
+	"github.com/Al-un/alun-api/alun/utils"
 	"github.com/Al-un/alun-api/pkg/communication"
+	"github.com/joho/godotenv"
 )
 
-func sendEmail() {
+// ----------------------------------------------------------------------------
+var (
+	alunAccount communication.EmailConfiguration
+	sender      string
+	recipients  []string
+)
 
-	recipient := "alun.sng@gmail.com"
-	accountUser := "plop@al-un.fr"
-	accountPassword := "hM2s02JRX2nIZEUpFGa8"
-	accountServer := "ssl0.ovh.net"
-	accountPort := 587
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error when loading .env: ", err)
+	}
 
-	alunAccount := communication.EmailConfiguration{
+	// Account config
+	accountUser := os.Getenv(utils.EnvVarEmailUsername)
+	accountPassword := os.Getenv(utils.EnvVarEmailPassword)
+	accountServer := os.Getenv(utils.EnvVarEmailHost)
+	accountPortText := os.Getenv(utils.EnvVarEmailPort)
+	accountPort, err := strconv.Atoi(accountPortText)
+	if err != nil {
+		log.Fatalf("Error when parsing Email PORT <%s>: %v\n ", accountPortText, err)
+	}
+	// log.Printf("Loading configuration %s / %s / %s / %s\n",
+	// 	accountUser, accountPassword, accountServer, accountPortText)
+
+	alunAccount = communication.EmailConfiguration{
 		Username: accountUser,
 		Password: accountPassword,
 		Host:     accountServer,
 		Port:     accountPort,
 	}
 
-	subject := "Testing HTML text mesage"
+	// Misc
+	sender = "Al-un.fr <no-reply@al-un.fr>"
+	recipients = []string{"alun.sng@gmail.com"}
+}
+
+// ----------------------------------------------------------------------------
+// sendTextEmail checks plain text email
+func sendTextEmail() {
+	err := alunAccount.Send(communication.NewEmailTextMessage(
+		sender,
+		recipients,
+		"Testing some plain and inline text email",
+		"Testing some text message\r\n"+
+			"\r\n"+
+			"With an empty line",
+	))
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("TextEmail sending Finished!")
+}
+
+// sendHTMLEmail checks HTML email from template in the current folder
+func sendHTMLEmail() {
 
 	templateData := struct {
 		Name string
@@ -35,33 +79,29 @@ func sendEmail() {
 
 	cwd, _ := os.Getwd()
 	email, err := communication.NewEmailHTMLMessage(
-		"no-reply@al-un.fr",
-		[]string{recipient},
-		subject,
-		// "./test.html",
+		sender,
+		recipients,
+		"Testing HTML email",
 		filepath.Join(cwd, "/cmd/communication/test.html"),
 		templateData,
 	)
 	if err != nil {
-		log.Fatal("Generate email: ", err)
+		log.Fatal("Generate email error: ", err)
 	}
 	err = alunAccount.Send(email)
 	if err != nil {
-		log.Fatal("Send email: ", err)
+		log.Fatal("Send email error: ", err)
 	}
 
-	// err := alunAccount.Send(communication.NewEmailTextMessage(
-	// 	"no-reply@al-un.fr",
-	// 	[]string{recipient},
-	// 	subject,
-	// 	"Testing some text message\r\n"+
-	// 		"\r\n"+
-	// 		"With an empty line",
-	// ))
+	log.Println("HTML email sending Finished!")
 
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("Finished!")
+}
 
+func sendNoReplyEmail() {
+	utils.SendNoReplyEmail(
+		recipients,
+		"Testing no-reply email",
+		"user_registration",
+		struct{ URL string }{URL: "https://youtube.com"},
+	)
 }
