@@ -6,7 +6,7 @@
     - [API structure](#api-structure)
 - [Framework or vanilla](#framework-or-vanilla)
   - [CORS](#cors)
-- [Authentication middleware](#authentication-middleware)
+  - [Authentication middleware](#authentication-middleware)
 - [`init()` call order](#init-call-order)
 - [Logging](#logging)
 - [JSON secret fields](#json-secret-fields)
@@ -53,13 +53,17 @@ Folder structure, as-of January 2020, looks like
 .env                    # dotenv files are at the root of the project
 ```
 
+**References**
+- [Kubernetes repo](https://github.com/kubernetes/kubernetes)
+- [Docker CLI repo](https://github.com/docker/cli)
+
 ### Content organisation
 
 For the sake of exploration, I am building multiple mini-applications relying on a core package. Such mini-application would be an independant package / folder. This most likely calls for some code redundancy but such isolation will allow some experiments in a given mini-application without breaking the other mini-application.
 
 ### Naming convention
 
-I have not digged for a strict naming convention so I will start with
+I have not digged for a strict naming convention.
 
 #### Package entry point
 
@@ -69,18 +73,23 @@ If a file has the same name as the package, such as `pkg/core/core.go`, then it 
 
 API structure main revolves around three files:
 
-- Entity layer: `models.go` or `{feature}_models.go`:
+- *Entity layer*: `models.go` or `{feature}_models.go`:
   - Define all data models
   - Define business logic when it can be defined for a single instance. E.g. _Mark an order as completed for a given order_ would be a function on the `Order` struct
-- Database persistence layer: `dao.go` or `{feature}_dao.go`:
+- *Database persistence layer*: `dao.go` or `{feature}_dao.go`:
   - Methods should **not** return a database specific type but a structure defined in some `(xxx_)models.go` or some standard Go structure
   - Methods should, whenever possible, not include business logic except to guarantee database consistency
-- Service layer: `handlers.go` or `{feature}_handlers.go`:
+- *Service layer*: `handlers.go` or `{feature}_handlers.go`:
   - Define all endpoint handlers
   - Define business logic when it is request specific. E.g. _Update user language based on HTTP request_ would be a function checking something in the incoming request and update the request body, namely the user, accordingly.
-- Routing layer: `api.go` or `{feature}_api.go`:
+- *Routing layer*: `api.go` or `{feature}_api.go`:
   - Define routes and map route endpoints to appropriate handlers
   - Can also define route guards
+
+**Resources**:
+- Coding principle:
+  - [Service layer pattern Wikipedia page](https://en.wikipedia.org/wiki/Service_layer_pattern)
+  - [Law of Demeter (aka principle of least knowledge) Wikipedia page](https://en.wikipedia.org/wiki/Law_of_Demeter)
 
 ## Framework or vanilla
 
@@ -88,13 +97,19 @@ After reading some articles such as [Why I don't use go web frameworks](https://
 
 Also, I try to be as-vanilla as possible, mainly for the sake of learning. As-of January 2020, I only use Gorilla for routing but I might ask for more Gorilla help later, hello Websockets.
 
+**References**:
+- [Gin framework](https://gin-gonic.com/)
+- [Revel framework](https://revel.github.io/)
+- [Slant: best web framework for go](https://www.slant.co/topics/1412/~best-web-frameworks-for-go)
+- [MindInventory: Top Web Framework for development in Golang](https://www.mindinventory.com/blog/top-web-frameworks-for-development-golang/)
+
 ### CORS
 
 To test my very first requests, I used `curl`. That's nice but moving from the stone age to the bronze age, aka some front-end development, makes me meet a friend of many of us: CORS.
 
 Without further ado. Let's start with the approach: Having some middleware was the most common approach I found with the Adapter pattern ([Writing middleware in #golang and how Go makes it so much fun.](https://medium.com/@matryer/writing-middleware-in-golang-and-how-go-makes-it-so-much-fun-4375c1246e81)). But each request would have the same CORS config which I wanted to avoid
 
-It might be called, or derived from, [principle of least privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege) but if an endpoint only needs `GET, POST`, I want to return `GET,POST`, not `GET,POST,PUT,DELETE` nor `*`.
+It might be called, or derived from, _principle of least privilege_ ([Wikipedia](https://en.wikipedia.org/wiki/Principle_of_least_privilege)) but if an endpoint only needs `GET, POST`, I want to return `GET,POST`, not `GET,POST,PUT,DELETE` nor `*`.
 
 I would then need a custom adapter hence the signature
 
@@ -116,10 +131,11 @@ This is nice for individual endpoints configuration but some endpoints might sha
 When doing a preflight request on `/aaa`, the server actually has to return `GET,POST` but only `GET` when doing the preflight on `/bbb`.
 
 Some references:
+- [Enabling CORS on a Go Web Server](https://flaviocopes.com/golang-enable-cors/): the easiest way
 - [Authoritative guide to CORS (Cross-Origin Resource Sharing) for REST APIs](https://www.moesif.com/blog/technical/cors/Authoritative-Guide-to-CORS-Cross-Origin-Resource-Sharing-for-REST-APIs/)
 - [StackOverflow: What are proper status codes for CORS preflight requests?](https://stackoverflow.com/questions/46026409/what-are-proper-status-codes-for-cors-preflight-requests)
 
-## Authentication middleware
+### Authentication middleware
 
 Abstract of routing
 
