@@ -84,12 +84,40 @@ API structure main revolves around three files:
 
 ## Framework or vanilla
 
-Gorilla because a lot of tutos with it
+After reading some articles such as [Why I don't use go web frameworks](https://medium.com/code-zen/why-i-don-t-use-go-web-frameworks-1087e1facfa4), comparing Revel, Gin or Gorilla, I ended up with Gorilla. Why? Because most of the tutorials are based on Gorilla :) 
+
+Also, I try to be as-vanilla as possible, mainly for the sake of learning. As-of January 2020, I only use Gorilla for routing but I might ask for more Gorilla help later, hello Websockets.
 
 ### CORS
 
-https://www.moesif.com/blog/technical/cors/Authoritative-Guide-to-CORS-Cross-Origin-Resource-Sharing-for-REST-APIs/
-https://stackoverflow.com/questions/46026409/what-are-proper-status-codes-for-cors-preflight-requests
+To test my very first requests, I used `curl`. That's nice but moving from the stone age to the bronze age, aka some front-end development, makes me meet a friend of many of us: CORS.
+
+Without further ado. Let's start with the approach: Having some middleware was the most common approach I found with the Adapter pattern ([Writing middleware in #golang and how Go makes it so much fun.](https://medium.com/@matryer/writing-middleware-in-golang-and-how-go-makes-it-so-much-fun-4375c1246e81)). But each request would have the same CORS config which I wanted to avoid
+
+It might be called, or derived from, [principle of least privilege](https://en.wikipedia.org/wiki/Principle_of_least_privilege) but if an endpoint only needs `GET, POST`, I want to return `GET,POST`, not `GET,POST,PUT,DELETE` nor `*`.
+
+I would then need a custom adapter hence the signature
+
+```go
+type CorsConfig struct {
+	Hosts   string
+	Methods string
+	Headers string
+}
+
+func AddCorsHeaders(next http.Handler, corsConfig CorsConfig) http.Handler {}
+```
+This is nice for individual endpoints configuration but some endpoints might share the same URL pattern with different methods. Let's consider three endpoints:
+
+- `GET`: `/aaa`
+- `POST`: `/aaa`
+- `GET`: `/bbb`
+
+When doing a preflight request on `/aaa`, the server actually has to return `GET,POST` but only `GET` when doing the preflight on `/bbb`.
+
+Some references:
+- [Authoritative guide to CORS (Cross-Origin Resource Sharing) for REST APIs](https://www.moesif.com/blog/technical/cors/Authoritative-Guide-to-CORS-Cross-Origin-Resource-Sharing-for-REST-APIs/)
+- [StackOverflow: What are proper status codes for CORS preflight requests?](https://stackoverflow.com/questions/46026409/what-are-proper-status-codes-for-cors-preflight-requests)
 
 ## Authentication middleware
 
