@@ -1,14 +1,12 @@
 package communication
 
-import "net/smtp"
-
-import "strings"
-
-import "fmt"
-
-import "html/template"
-
-import "bytes"
+import (
+	"bytes"
+	"fmt"
+	"html/template"
+	"net/smtp"
+	"strings"
+)
 
 /**
 Golang documentation		: https://golang.org/pkg/net/smtp/#SendMail
@@ -27,7 +25,9 @@ Actions required:
 - Adding "From" in message headers to get accepted by Gmail
 **/
 
-// EmailConfiguration configures an email sender account
+// EmailConfiguration configures an email sender account.
+//
+// There is no default email configuration so email credentials are required.
 type EmailConfiguration struct {
 	Username string
 	Password string
@@ -35,7 +35,9 @@ type EmailConfiguration struct {
 	Port     int
 }
 
-// EmailMessage harmonises email message format
+// EmailMessage harmonises email message format which will be sent by an EmailConfiguration
+//
+// Jan-2020: Multipart emails are not supported
 type EmailMessage struct {
 	// email sender is not necessarily the same account used in the email configuration, e.g.: no-reply account
 	From    string
@@ -56,7 +58,7 @@ func (emailCfg *EmailConfiguration) Send(emailMsg EmailMessage) error {
 	for headerKey, headerValue := range emailMsg.AdditionalHeaders {
 		msgHeaders[headerKey] = headerValue
 	}
-	// Overrides reserved fields if defined in additional headers
+	// Overrides reserved fields if defined in emailMsg.AdditionalHeaders
 	msgHeaders["From"] = emailMsg.From
 	msgHeaders["To"] = strings.Join(emailMsg.To, ",")
 	msgHeaders["Subject"] = emailMsg.Subject
@@ -83,7 +85,7 @@ func (emailCfg *EmailConfiguration) Send(emailMsg EmailMessage) error {
 	return err
 }
 
-// NewEmailTextMessage generate a basic text message
+// NewEmailTextMessage generate a basic text EmailMessage
 func NewEmailTextMessage(from string, to []string, subject string, message string) EmailMessage {
 	return EmailMessage{
 		From:        from,
@@ -94,31 +96,15 @@ func NewEmailTextMessage(from string, to []string, subject string, message strin
 	}
 }
 
-// NewEmailHTMLMessage generate a HTML message from a template path
+// NewEmailHTMLMessage generate a HTML EmailMessage from a template path
 func NewEmailHTMLMessage(from string, to []string, subject string, templatePath string, emailData interface{}) (EmailMessage, error) {
-	// 	pouet := `
-	// 	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-	//         "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-	// <html>
-
-	// </head>
-
-	// <body>
-
-	//     <h2>Hello Pouet</h2>
-	// 	<p>    <a href="http//www.google.com">Google</a>
-	// </p>
-
-	// </body>
-
-	// </html>
-	// `
-
+	// Fetch template
 	t, err := template.ParseFiles(templatePath)
 	if err != nil {
 		return EmailMessage{}, err
 	}
 
+	// Fill the template with provided data, if applicable
 	buf := new(bytes.Buffer)
 	if err = t.Execute(buf, emailData); err != nil {
 		return EmailMessage{}, err
