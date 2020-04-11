@@ -1,0 +1,70 @@
+version: "3"
+
+services:
+  # Mongo DB 4.2.5
+  # https://hub.docker.com/layers/mongo/library/mongo/4.2.5-bionic/images/sha256-e02955d5aad655bff95edfd8860add767a75a760d7952966cbd3a01202684e95?context=explore
+  mongo-database:
+    image: mongo:4.2.5-bionic
+    # Database does not expose any port
+    # https://docs.docker.com/compose/compose-file/#expose
+    expose:
+      - "27017"
+    # https://hub.docker.com/_/mongo?tab=description
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: pouet
+      MONGO_INITDB_ROOT_PASSWORD: pouet
+      MONGO_INITDB_DATABASE: alun
+    # volumes:
+    #   db-data:
+    networks:
+      alun:
+        aliases:
+          - mongo-database
+
+  api-user:
+    build:
+      context: .
+      dockerfile: ./api-user.Dockerfile
+    ports:
+      - "8001:8000"
+    env_file:
+      - ./.env.docker
+    environment:
+      ALUN_CLIENT_DOMAIN: http://localhost:8080
+      ALUN_USER_PORT: 8000
+      ALUN_USER_DATABASE_URL: mongodb://pouet:pouet@mongo-database:27017/alun
+    networks:
+      alun:
+        aliases:
+          - api-user
+    depends_on:
+      - mongo-database
+
+  api-memo:
+    build:
+      context: .
+      dockerfile: ./api-memo.Dockerfile
+    ports:
+      - "8002:8000"
+    env_file:
+      - ./.env.docker
+    environment:
+      ALUN_CLIENT_DOMAIN: http://localhost:8080
+      ALUN_MEMO_PORT: 8000
+      ALUN_MEMO_DATABASE_URL: mongodb://pouet:pouet@mongo-database:27017/alun
+    networks:
+      alun:
+        aliases:
+          - api-memo
+    depends_on:
+      - mongo-database
+
+volumes:
+  db-data:
+
+networks:
+  alun:
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.42.39.0/24"
