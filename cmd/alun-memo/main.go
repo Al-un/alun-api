@@ -22,7 +22,7 @@ func main() {
 	// Env var loading
 	err := godotenv.Load()
 	if err != nil {
-		rootLogger.Fatal(1, "Error when load .env:\n%v", err)
+		// rootLogger.Fatal(1, "Error when load .env:\n%v", err)
 	}
 
 	// Server config
