@@ -1,6 +1,6 @@
 # Al-un API <!-- omit in toc -->
 
-- [Run](#run)
+- [Docker](#docker)
   - [Monolithic build](#monolithic-build)
   - [Microservices build](#microservices-build)
 - [Resources](#resources)
@@ -10,7 +10,9 @@
 
 API for al-un.fr
 
-## Run
+## Docker
+
+Images are available on [Docker hub](https://hub.docker.com/repository/docker/alunsng/alun).
 
 ### Monolithic build
 
