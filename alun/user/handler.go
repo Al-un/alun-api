@@ -19,9 +19,9 @@ func authUser(w http.ResponseWriter, r *http.Request) {
 	// --- JSON-based authentication
 	var user authenticatedUser
 	json.NewDecoder(r.Body).Decode(&user)
-	if user.Username != "" && user.Password != "" {
-		userLogger.Verbose("JSON authentication: %s/%s", user.Username, user.Password)
-		authenticateCredentials(user.Username, user.Password)(w)
+	if user.Email != "" && user.Password != "" {
+		userLogger.Verbose("JSON authentication: %s/%s", user.Email, user.Password)
+		authenticateCredentials(user.Email, user.Password)(w)
 		return
 	}
 
