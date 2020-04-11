@@ -1,8 +1,37 @@
-# Al-un API
+# Al-un API <!-- omit in toc -->
 
-- [Resources](#Resources)
+- [Run](#run)
+  - [Monolithic build](#monolithic-build)
+  - [Microservices build](#microservices-build)
+- [Resources](#resources)
+  - [MongoDB](#mongodb)
+    - [Queries](#queries)
+- [Heroku](#heroku)
 
 API for al-un.fr
+
+## Run
+
+### Monolithic build
+
+```sh
+sudo docker-compose --file api-monolith-compose.yml build --no-cache
+sudo docker-compose --file api-monolith-compose.yml up
+```
+
+Endpoints are all in `https://localhost:8000`
+
+### Microservices build
+
+```sh
+sudo docker-compose --file api-microservice-compose.yml build --no-cache
+sudo docker-compose --file api-microservice-compose.yml up
+```
+
+Endpoints are:
+
+- _user app_: `http://localhost:8001`
+- _memo app_: `http://localhost:8002`
 
 ## Resources
 
