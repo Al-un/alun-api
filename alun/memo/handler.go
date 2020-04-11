@@ -12,8 +12,8 @@ func handleCreateMemo(w http.ResponseWriter, r *http.Request, claims core.JwtCla
 	json.NewDecoder(r.Body).Decode(&toCreateMemo)
 
 	memoLogger.Verbose("Parsed new memo: %v", toCreateMemo)
-
 	toCreateMemo.PrepareForCreate(claims)
+	memoLogger.Verbose("Prepared memo %v for creation with %v", toCreateMemo, claims)
 
 	newMemo, err := createMemo(toCreateMemo)
 	if err != nil {

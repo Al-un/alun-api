@@ -14,12 +14,29 @@ import (
 	"github.com/Al-un/alun-api/pkg/logger"
 )
 
-var coreLogger = logger.NewConsoleLogger(logger.LogLevelVerbose)
-
 var (
-	clientDomain string
+	coreLogger = logger.NewConsoleLogger(logger.LogLevelVerbose)
+
+	// ClientDomain refers to the expected domain of the client application
+	ClientDomain string
+	// JwtSecretKey is used ONLY for signing JWT
+	jwtSecretKey string
+)
+
+const (
+	defaultJwtSecret string = "1f6797e3545d8d4d4b3ddd8792224e85344be25bd7aa5b8ab63ea72a4186b03f"
+
+	// APIv1 is the standardisation for first version of an API endpoint
+	APIv1 string = "v1"
+	// APIv2 is the standardisation for second version of an API endpoint
+	APIv2 string = "v2"
+	// APIMonolithic to enable monolithic mode
+	APIMonolithic = true
+	// APIMicroservice to enable microservice mode
+	APIMicroservice = false
 )
 
 func init() {
-	clientDomain = os.Getenv(utils.EnvVarClientDomain)
+	ClientDomain = os.Getenv(utils.EnvVarClientDomain)
+	jwtSecretKey = defaultJwtSecret
 }

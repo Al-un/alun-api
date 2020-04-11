@@ -1,4 +1,4 @@
-package core
+package user
 
 import (
 	"crypto/sha512"
@@ -13,9 +13,6 @@ import (
 // ----------------------------------------------------------------------------
 // Various utilities for authentication and authorization
 // ----------------------------------------------------------------------------
-
-// ---------- Utilities (local) -----------------------------------------------
-
 func rejectAuthentication(reason string) func(http.ResponseWriter) {
 	return func(w http.ResponseWriter) {
 		w.WriteHeader(http.StatusForbidden)
@@ -32,7 +29,7 @@ func hashPassword(clearPassword string) string {
 	h.Write([]byte(pwdSecretSalt))
 	hashedPassword := string(h.Sum(nil))
 
-	coreLogger.Verbose("HashPassword: <%s> + <%s> = <%s>", clearPassword, pwdSecretSalt, hashedPassword)
+	userLogger.Verbose("HashPassword: <%s> + <%s> = <%s>", clearPassword, pwdSecretSalt, hashedPassword)
 
 	return hashedPassword
 }
@@ -48,8 +45,6 @@ func authenticateCredentials(email string, clearPassword string) func(http.Respo
 	// TODO: assuming error is when no login is found
 	// Also handled expired token
 	if err != nil || login.Token.ExpiresOn.After(time.Now()) {
-		// fmt.Printf(">>>>>>>>>>>> %v <<<<<<<<, \n", err)
-
 		jwt, err := generateJWT(user)
 		if err != nil {
 			return rejectAuthentication("Error when generating JWT")
@@ -83,7 +78,7 @@ func authenticateBasic(authHeader string) func(http.ResponseWriter) {
 	}
 
 	email, password := basicCredentials[0], basicCredentials[1]
-	coreLogger.Verbose("Basic authentication with <%s/%s>", email, password)
+	userLogger.Verbose("Basic authentication with <%s/%s>", email, password)
 
 	return authenticateCredentials(email, password)
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Al-un/alun-api/alun/core"
+	"github.com/Al-un/alun-api/alun/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -18,23 +19,28 @@ var dbMemoCollection *mongo.Collection
 
 // Init the connection with MongoDB upon app initialisation
 func init() {
+	_, memoMongoDb, err := core.MongoConnectFromEnvVar(utils.EnvVarMemoDbURL)
+	if err != nil {
+		memoLogger.Fatal(1, "%v", err)
+	}
+
 	// Initialisation: collections name
 	dbMemoCollectionName = "al_memos"
 
 	// Initialisation: collections instances
-	dbMemoCollection = core.MongoDatabase.Collection(dbMemoCollectionName)
+	dbMemoCollection = memoMongoDb.Collection(dbMemoCollectionName)
 
 	memoLogger.Debug("[MongoDB] Memo initialisation!")
 }
 
 // ---------- CRUD ------------------------------------------------------------
-func findMemosByUserID(userID string) ([]memoList, error) {
+func findMemosByUserID(userID string) ([]MemoList, error) {
 	id, _ := primitive.ObjectIDFromHex(userID)
 	filter := bson.M{
 		core.TrackedCreatedBy: id,
 	}
 
-	var memos []memoList
+	var memos []MemoList
 
 	cur, err := dbMemoCollection.Find(context.TODO(), filter)
 	if err != nil {
@@ -42,7 +48,7 @@ func findMemosByUserID(userID string) ([]memoList, error) {
 		return memos, err
 	}
 
-	var next memoList
+	var next MemoList
 	for cur.Next(context.TODO()) {
 		cur.Decode(&next)
 		memos = append(memos, next)

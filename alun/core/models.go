@@ -5,8 +5,41 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+// ----------------------------------------------------------------------------
+//	Types: Authentication and Authorization
+// ----------------------------------------------------------------------------
+
+// JwtClaims extends standard claims for our User model.
+//
+// By including the IsAdmin and UserID fields, authorization check can be
+// based on those values
+type JwtClaims struct {
+	IsAdmin bool   `json:"isAdmin"`
+	UserID  string `json:"userId"`
+	jwt.StandardClaims
+}
+
+// AuthenticatedHandler is meant to be the core logic of the handler with the user
+// informations already extracted from the request.
+//
+// claims are assumed to be always non-nil and always validated beforehand
+type AuthenticatedHandler func(w http.ResponseWriter, r *http.Request, claims JwtClaims)
+
+// AccessChecker ensures that the provided request is allowed to proceed or not.
+//
+// Most of the checks are based on the token header. An AccessChecker always
+// assumes that the JWT is properly formed, hence the jwtClaims argument.
+// An AccessChecker's check success often leads to some AuthenticatedHandler to
+// proceed.
+type AccessChecker func(r *http.Request, jwtClaims JwtClaims) bool
+
+// ----------------------------------------------------------------------------
+//	Types: Basic data model
+// ----------------------------------------------------------------------------
 
 // TrackedEntity is the basic structure for all entities which require tracking:
 // user tracking and time tracking
@@ -45,6 +78,10 @@ const (
 	// TrackedModifiedAt is the modifiedAt key. TrackedEntity is assumed to in "bson:,inline"
 	TrackedModifiedAt = "modifiedAt"
 )
+
+// ----------------------------------------------------------------------------
+//	Types: Internal object
+// ----------------------------------------------------------------------------
 
 // ServiceMessage is a token to forward the status of an action to the next function /
 // whatever handler processing it.

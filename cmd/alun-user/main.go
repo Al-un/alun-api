@@ -8,15 +8,10 @@ import (
 	"strconv"
 
 	"github.com/Al-un/alun-api/alun/core"
-	"github.com/Al-un/alun-api/alun/memo"
 	"github.com/Al-un/alun-api/alun/user"
 	"github.com/Al-un/alun-api/alun/utils"
 	"github.com/Al-un/alun-api/pkg/logger"
 	"github.com/joho/godotenv"
-)
-
-const (
-	defaultPort = 8000
 )
 
 var serverPort int
@@ -31,19 +26,17 @@ func main() {
 	}
 
 	// Server config
-	serverPort, err = strconv.Atoi(os.Getenv(utils.EnvVarServerPort))
+	serverPort, err = strconv.Atoi(os.Getenv(utils.EnvVarUserPort))
 	if err != nil {
-		rootLogger.Info("Using default port %d", defaultPort)
-		serverPort = defaultPort
+		rootLogger.Fatal(1, "Error when fetching port for %s", utils.EnvVarUserPort)
 	}
 
 	r := core.SetupRouter(
-		core.APIMonolithic,
+		core.APIMicroservice,
 		user.UserAPI,
-		memo.MemoAPI,
 	)
 
 	// Go!
-	rootLogger.Info("[Server] Starting server on port %d...", serverPort)
+	rootLogger.Info("[User] Starting user service on port %d...", serverPort)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", serverPort), r))
 }

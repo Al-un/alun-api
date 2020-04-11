@@ -76,31 +76,3 @@ var isUnknownError = &ServiceMessage{
 	HTTPStatus: http.StatusForbidden,
 	Message:    "Unknown error during Authorization check",
 }
-
-// ----------------------------------------------------------------------------
-//	User management: Code 102xx
-// ----------------------------------------------------------------------------
-
-var hasNoValidEmail = &ServiceMessage{
-	Code:       10200,
-	HTTPStatus: http.StatusBadRequest,
-	Message:    "Email is not valid",
-}
-
-var hasEmailNotAvailable = &ServiceMessage{
-	Code:       10201,
-	HTTPStatus: http.StatusBadRequest,
-	Message:    "Email is already taken",
-}
-
-var pwdResetTokenNotFound = &ServiceMessage{
-	Code:       10202,
-	HTTPStatus: http.StatusBadRequest,
-	Message:    "Password reset token not found",
-}
-
-var pwdResetTokenExpired = &ServiceMessage{
-	Code:       10203,
-	HTTPStatus: http.StatusBadRequest,
-	Message:    "Password reset token is expired",
-}

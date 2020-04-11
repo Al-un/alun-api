@@ -1,8 +1,11 @@
-package core
+package user
 
 import (
 	"context"
 	"time"
+
+	"github.com/Al-un/alun-api/alun/core"
+	"github.com/Al-un/alun-api/alun/utils"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -25,9 +28,9 @@ var dbUserLoginCollection *mongo.Collection
 
 // Init the connection with MongoDB upon app initialisation
 func init() {
-	// init() function are called in order of files so DAO needs to be init
-	if MongoDatabase == nil {
-		initDao()
+	_, mongoDb, err := core.MongoConnectFromEnvVar(utils.EnvVarUserDbURL)
+	if err != nil {
+		userLogger.Fatal(1, "%v", err)
 	}
 
 	// Initialisation: collections name
@@ -35,10 +38,10 @@ func init() {
 	dbUserLoginCollectionName = "al_users_login"
 
 	// Initialisation: collections instances
-	dbUserCollection = MongoDatabase.Collection(dbUserCollectionName)
-	dbUserLoginCollection = MongoDatabase.Collection(dbUserLoginCollectionName)
+	dbUserCollection = mongoDb.Collection(dbUserCollectionName)
+	dbUserLoginCollection = mongoDb.Collection(dbUserLoginCollectionName)
 
-	coreLogger.Info("[MongoDB] User initialisation!")
+	userLogger.Info("[MongoDB] User initialisation!")
 }
 
 // ---------- CRUD ------------------------------------------------------------
@@ -50,23 +53,23 @@ func findUserByEmailPassword(email string, clearPassword string) (User, error) {
 
 	filter := bson.M{"email": email, "password": hashedPassword}
 	if err := dbUserCollection.FindOne(context.TODO(), filter).Decode(&authUser); err != nil {
-		coreLogger.Verbose("Credentials %s/%s (hashed: %s) are NOT valid T_T due to error: %v",
+		userLogger.Verbose("Credentials %s/%s (hashed: %s) are NOT valid T_T due to error: %v",
 			email, clearPassword, hashedPassword, err)
 		return User{}, err
 	}
 
-	coreLogger.Verbose("Credentials %s/%s are valid \\o/", email, clearPassword)
+	userLogger.Verbose("Credentials %s/%s are valid \\o/", email, clearPassword)
 
 	return authUser.User, nil
 }
 
-func isEmailAlreadyRegistered(email string) (bool, *ServiceMessage) {
+func isEmailAlreadyRegistered(email string) (bool, *core.ServiceMessage) {
 	filter := bson.M{"email": email}
 	userCount, err := dbUserCollection.CountDocuments(context.TODO(), filter)
 
 	if err != nil {
-		coreLogger.Info("Error when counting user with email %s %v", email, err)
-		return false, NewServiceErrorMessage(err)
+		userLogger.Info("Error when counting user with email %s %v", email, err)
+		return false, core.NewServiceErrorMessage(err)
 	}
 
 	return userCount > 0, nil
@@ -112,9 +115,9 @@ func findLoginByToken(jwt string) (Login, error) {
 // createUser creates the user with only an email. The email is checked is
 //
 // returns newly created user
-func createUser(user User) (User, *ServiceMessage) {
+func createUser(user User) (User, *core.ServiceMessage) {
 
-	coreLogger.Verbose("Checking %+v", user)
+	userLogger.Verbose("Checking %+v", user)
 
 	// Check if email is already registered
 	isEmailAlreadyTaken, errMsg := isEmailAlreadyRegistered(user.Email)
@@ -127,30 +130,30 @@ func createUser(user User) (User, *ServiceMessage) {
 		return User{}, hasEmailNotAvailable
 	}
 
-	coreLogger.Verbose("Creating %+v", user)
+	userLogger.Verbose("Creating %+v", user)
 	createdUser, err := dbUserCollection.InsertOne(context.TODO(), user)
 	if err != nil {
-		coreLogger.Warn("Error when creating user of email %s: %v", user.Email, err)
-		return User{}, NewServiceErrorMessage(err)
+		userLogger.Warn("Error when creating user of email %s: %v", user.Email, err)
+		return User{}, core.NewServiceErrorMessage(err)
 	}
 
 	var newUser User
 	filter := bson.M{"_id": createdUser.InsertedID}
 	if err := dbUserCollection.FindOne(context.TODO(), filter).Decode(&newUser); err != nil {
-		return User{}, NewServiceErrorMessage(err)
+		return User{}, core.NewServiceErrorMessage(err)
 	}
-	coreLogger.Verbose("[User] Created newUser <%+v>", newUser)
+	userLogger.Verbose("[User] Created newUser <%+v>", newUser)
 
 	return newUser, nil
 }
 
-func changePassword(pwdChgRequest pwdChangeRequest) (authenticatedUser, *ServiceMessage) {
+func changePassword(pwdChgRequest pwdChangeRequest) (authenticatedUser, *core.ServiceMessage) {
 
 	// Is password reset token found
 	var user User
 	filter := bson.M{"pwdResetToken.token": pwdChgRequest.Token}
 	if err := dbUserCollection.FindOne(context.TODO(), filter).Decode(&user); err != nil {
-		coreLogger.Debug(">>> %v", err)
+		userLogger.Debug(">>> %v", err)
 		return authenticatedUser{}, pwdResetTokenNotFound
 	}
 
@@ -177,7 +180,7 @@ func changePassword(pwdChgRequest pwdChangeRequest) (authenticatedUser, *Service
 	var updatedUser authenticatedUser
 
 	if err := dbUserCollection.FindOneAndUpdate(context.TODO(), filter, update).Decode(&updatedUser); err != nil {
-		return authenticatedUser{}, NewServiceErrorMessage(err)
+		return authenticatedUser{}, core.NewServiceErrorMessage(err)
 	}
 
 	return updatedUser, nil
@@ -189,7 +192,7 @@ func createLogin(login Login) (Login, error) {
 	if err != nil {
 		return Login{}, err
 	}
-	coreLogger.Debug("[User] Creating login <%v> with insertResult <%v>", login, created)
+	userLogger.Debug("[User] Creating login <%v> with insertResult <%v>", login, created)
 
 	var newLogin Login
 	filter := bson.M{"_id": created.InsertedID}
@@ -218,7 +221,7 @@ func updateUser(userID string, user User) (User, error) {
 	if err := dbUserCollection.FindOneAndUpdate(context.TODO(), filter, update).Decode(&updatedUser); err != nil {
 		return User{}, err
 	}
-	coreLogger.Debug("[User] Creating user <%v> with result <%v>", user, updatedUser)
+	userLogger.Debug("[User] Creating user <%v> with result <%v>", user, updatedUser)
 	return updatedUser, nil
 }
 
@@ -236,7 +239,7 @@ func invalidateToken(jwt string, invalidStatusCode int) (Login, error) {
 	if err := dbUserLoginCollection.FindOneAndUpdate(context.TODO(), filter, update).Decode(&invalidatedLogin); err != nil {
 		return Login{}, err
 	}
-	coreLogger.Debug("[User] Invalidate <%v> with result <%v>", jwt, invalidatedLogin)
+	userLogger.Debug("[User] Invalidate <%v> with result <%v>", jwt, invalidatedLogin)
 	return invalidatedLogin, nil
 
 }
@@ -246,9 +249,9 @@ func deleteUser(userID string) int64 {
 	filter := bson.M{"_id": id}
 	d, err := dbUserCollection.DeleteMany(context.TODO(), filter, nil)
 	if err != nil {
-		coreLogger.Info("[User] error in user deletion: ", err)
+		userLogger.Info("[User] error in user deletion: ", err)
 	}
 
-	coreLogger.Debug("[User] Deleting ID <%v>: %d count(s)", userID, d.DeletedCount)
+	userLogger.Debug("[User] Deleting ID <%v>: %d count(s)", userID, d.DeletedCount)
 	return d.DeletedCount
 }

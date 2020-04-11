@@ -2,21 +2,9 @@ package core
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
-)
-
-// ----------------------------------------------------------------------------
-// 	Constants
-// ----------------------------------------------------------------------------
-
-const (
-	// APIv1 is the standardisation for first version of an API endpoint
-	APIv1 string = "v1"
-	// APIv2 is the standardisation for second version of an API endpoint
-	APIv2 string = "v2"
 )
 
 // ----------------------------------------------------------------------------
@@ -63,8 +51,10 @@ type CorsConfig struct {
 	Headers string
 }
 
-// URLBuilder defines how an API generates a final endpoint URL given a root url,
-// a version and the endpoint url
+// URLBuilder defines how an API generates a final endpoint URL given an (optional)
+// root url, a version and the endpoint url
+//
+// Root URL is optional for microservices-ready structure
 type URLBuilder func(root string, version string, url string) string
 
 // ----------------------------------------------------------------------------
@@ -76,12 +66,6 @@ type URLBuilder func(root string, version string, url string) string
 // - Allowed CORS headers and hosts are, for the moment, "*"
 // - By default, the JSON middleware is always added
 func NewAPI(root string) *API {
-
-	firstChar := root[:1]
-	if firstChar != "/" {
-		coreLogger.Warn("[API] Root %s does not start with \"/\".", root)
-	}
-
 	// init
 	api := &API{
 		root:        root,
@@ -91,14 +75,15 @@ func NewAPI(root string) *API {
 		urlBuilder:  URLDefaultBuilder,
 	}
 
-	// default middleware
-	api.AddMiddleware(AddJSONHeaders)
-
 	return api
 }
 
 // URLDefaultBuilder concatenates "/{version}/{root}/{url}""
 var URLDefaultBuilder URLBuilder = func(root string, version string, url string) string {
+	if root == "" {
+		return fmt.Sprintf("/%s/%s", version, url)
+	}
+
 	return fmt.Sprintf("/%s/%s/%s", version, root, url)
 }
 
@@ -123,7 +108,7 @@ func (api *API) addEndpoint(endpoint APIEndpoint) {
 		endpoint.httpMethod != http.MethodPatch &&
 		endpoint.httpMethod != http.MethodPut &&
 		endpoint.httpMethod != http.MethodDelete {
-		log.Fatalf("Cannot call 'AddHandler' an invalid method \"%s\" for URL %s/%s/%s",
+		coreLogger.Fatal(1, "Cannot call 'AddHandler' an invalid method \"%s\" for URL %s/%s/%s",
 			endpoint.httpMethod, api.root, endpoint.version, endpoint.url)
 	}
 

@@ -12,6 +12,8 @@ import (
 
 const (
 	defaultSender = "Al-un.fr <no-reply@al-un.fr>"
+	// EmailTemplateUserRegistration when sending email for new user
+	EmailTemplateUserRegistration = "user_registration"
 )
 
 var (

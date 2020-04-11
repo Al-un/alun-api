@@ -1,3 +1,6 @@
 # Configuration
 .env
 .env.*
+
+# Various temporary stuff
+pouet.*
