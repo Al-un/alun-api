@@ -1,9 +1,30 @@
 #!/bin/sh
 
-docker build --file api-memo.Dockerfile --tag alunsng/alun:api-memo .
-docker build --file api-user.Dockerfile --tag alunsng/alun:api-user .
-docker build --file api-monolith.Dockerfile --tag alunsng/alun:api-monolith .
+# Cheerful colouring
+#   https://stackoverflow.com/a/61026468/4906586
 
-docker push alunsng/alun:api-memo
-docker push alunsng/alun:api-user
-docker push alunsng/alun:api-monolith
+# Must be root
+if [ "$(id -u)" -ne 0 ]; then
+    printf "\e[1;31m"
+    echo "Please don't forget to sudo here"
+    printf "\e[0m"
+    exit 1
+fi
+
+# Constants
+DOCKER_REPO=alunsng/alun
+
+# Loop through Dockerfiles
+for DOCKERFILE_NAME in *.Dockerfile
+do
+
+    # https://stackoverflow.com/a/428118/4906586
+    APP_NAME=$(echo $DOCKERFILE_NAME | cut -d '.' -f 1)
+    printf "\e[1;33m"
+    echo "--- Build and pushing $APP_NAME ---"
+    printf "\e[0m"
+
+    docker build --file $DOCKERFILE_NAME --tag $DOCKER_REPO:$APP_NAME .
+    docker push $DOCKER_REPO:$APP_NAME
+
+done
