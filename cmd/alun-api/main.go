@@ -15,10 +15,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-const (
-	defaultPort = 8000
-)
-
 var serverPort int
 
 func main() {
@@ -27,14 +23,13 @@ func main() {
 	// Env var loading
 	err := godotenv.Load()
 	if err != nil {
-		rootLogger.Fatal(1, "Error when load .env:\n%v", err)
+		// rootLogger.Fatal(1, "Error when load .env:\n%v", err)
 	}
 
 	// Server config
 	serverPort, err = strconv.Atoi(os.Getenv(utils.EnvVarServerPort))
 	if err != nil {
-		rootLogger.Info("Using default port %d", defaultPort)
-		serverPort = defaultPort
+		rootLogger.Fatal(1, "Port %s is not defined", utils.EnvVarServerPort)
 	}
 
 	r := core.SetupRouter(

@@ -19,12 +19,14 @@ import (
 
 // MongoConnectFromEnvVar connects to a Mongo database with the provided environment
 // variable
+//
+// This helper does not guarantee that dotenv files are properly loaded
 func MongoConnectFromEnvVar(envVarName string) (*mongo.Client, *mongo.Database, error) {
 	// Ensure that dotenv file is/are loaded
 	err := godotenv.Load()
 	if err != nil {
-		coreLogger.Warn("Error when loading .env file:\n%v", err)
-		return nil, nil, err
+		// coreLogger.Warn("Error when loading .env file:\n%v", err)
+		// return nil, nil, err
 	}
 
 	// Load URI
@@ -38,10 +40,6 @@ func MongoConnectFromEnvVar(envVarName string) (*mongo.Client, *mongo.Database, 
 
 // MongoConnectToDb creates a Mongo client instance from an URI as well as the
 // Mongo database instance depending on the database name in the URI
-//
-//
-// When initializing database instances, beware of package loading order and dotenv loading, such
-// as the authentication information (user and stuff).
 func MongoConnectToDb(mongoDbURI string) (*mongo.Client, *mongo.Database, error) {
 	dbConnectionString, dbName := MongoParseDbURI(mongoDbURI)
 	coreLogger.Debug("[MongoDB] Loading connection info [%v][%v]", dbConnectionString, dbName)

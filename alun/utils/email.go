@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -27,7 +26,7 @@ var (
 func init() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error when loading .env: ", err)
+		// log.Fatal("Error when loading .env: ", err)
 	}
 
 	// Email account configuration
