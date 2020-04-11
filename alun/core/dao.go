@@ -25,7 +25,7 @@ func MongoConnectFromEnvVar(envVarName string) (*mongo.Client, *mongo.Database, 
 	// Ensure that dotenv file is/are loaded
 	err := godotenv.Load()
 	if err != nil {
-		// coreLogger.Warn("Error when loading .env file:\n%v", err)
+		// coreLogger.Warn("Error when loading .env file: %v", err)
 		// return nil, nil, err
 	}
 
