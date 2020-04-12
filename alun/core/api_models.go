@@ -84,7 +84,7 @@ var URLDefaultBuilder URLBuilder = func(root string, version string, url string)
 		return fmt.Sprintf("/%s/%s", version, url)
 	}
 
-	return fmt.Sprintf("/%s/%s/%s", version, root, url)
+	return fmt.Sprintf("/%s/%s/%s", root, version, url)
 }
 
 // ----------------------------------------------------------------------------
