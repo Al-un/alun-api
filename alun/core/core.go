@@ -8,9 +8,6 @@
 package core
 
 import (
-	"os"
-
-	"github.com/Al-un/alun-api/alun/utils"
 	"github.com/Al-un/alun-api/pkg/logger"
 )
 
@@ -37,6 +34,5 @@ const (
 )
 
 func init() {
-	ClientDomain = os.Getenv(utils.EnvVarClientDomain)
 	jwtSecretKey = defaultJwtSecret
 }

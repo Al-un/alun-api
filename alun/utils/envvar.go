@@ -5,8 +5,6 @@ const (
 	// === Server
 	EnvVarServerPort         = "ALUN_SERVER_MONOLITHIC_PORT"
 	EnvVarServerIsMonolithic = "ALUN_SERVER_IS_MONOLITHIC"
-	// === Misc
-	EnvVarClientDomain = "ALUN_CLIENT_DOMAIN"
 	// === Application: User
 	EnvVarUserPort    = "ALUN_USER_PORT"
 	EnvVarUserDbURL   = "ALUN_USER_DATABASE_URL"
