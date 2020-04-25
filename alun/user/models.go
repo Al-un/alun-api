@@ -16,65 +16,55 @@ const (
 	pwdResetNewAccountTTL = 10 * time.Minute
 	// Password reset validity time when changing password
 	pwdResetChgPasswordTTL = 10 * time.Minute
-	// New user flag for password reset token
-	resetTypeNewAccount = "newAccount"
-	// Net password flag for password reset token
-	resetTypeResetPwd = "resetPwd"
+	// Password reset request
+	userPwdRequestPwdReset = 0
+	// New user creation
+	userPwdRequestNewUser = 1
 )
 
-// RegisteringUser has the single Email field to strip out any other field
-// sent during a user registration request
+// BaseUser has the single Email field to strip out any other field
+// sent during a user registration request or password reset request
 //
-// A registeringUser does not need an ID as it must be transform into an
+// An BaseUser does not need an ID as it must be transform into an
 // User for being created in the database
 //
-// RegisteringUser must be an exportable struct so that `bson` tag works
-type RegisteringUser struct {
+// BaseUser must be an exportable struct so that `bson` tag works
+type BaseUser struct {
 	Email string `json:"email" bson:"email"`
 }
 
-// prepareForCreationg takes a registeringUser and build an User from it by
-// assigning its first ResetToken with the "new user" flag.
-func (rg *RegisteringUser) prepareForCreation() (User, error) {
-	token, err := crypto.GenerateRandomString(32)
-
-	if err != nil {
-		return User{}, nil
-	}
-
-	resetToken := pwdResetToken{
-		Token:     token,
-		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().Add(pwdResetNewAccountTTL),
-		ResetType: resetTypeNewAccount,
-	}
-
-	newUser := User{
-		RegisteringUser: *rg,
-		PwdResetToken:   resetToken,
-	}
-
-	return newUser, nil
+// PasswordRequest involves an email and a request:
+//	- new user creation
+//	- password reset request
+// The redirectURL will tell the server which link has to be added in the email
+type PasswordRequest struct {
+	RedirectURL string `json:"redirectUrl"`
+	// see
+	//	userPwdRequestPwdReset => default value: "0"
+	//	userPwdRequestNewUser
+	RequestType int8 `json:"requestType"`
+	BaseUser
 }
 
-// createPwdResetToken
-func (rg *RegisteringUser) createPwdResetToken(killPassword bool) (User, error) {
+// CreatePwdResetToken builds a password reset token for an UserPasswordRequest
+func (upr *PasswordRequest) createPwdResetToken() (*User, error) {
+	// Create random value
 	token, err := crypto.GenerateRandomString(32)
-
 	if err != nil {
-		return User{}, nil
+		return nil, err
 	}
 
+	// build token
 	resetToken := pwdResetToken{
-		Token:     token,
-		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().Add(pwdResetNewAccountTTL),
-		ResetType: resetTypeNewAccount,
+		Token:       token,
+		CreatedAt:   time.Now(),
+		ExpiresAt:   time.Now().Add(pwdResetNewAccountTTL),
+		RequestType: upr.RequestType,
 	}
 
-	newUser := User{
-		RegisteringUser: *rg,
-		PwdResetToken:   resetToken,
+	newUser := &User{
+		PwdResetToken: resetToken,
+		BaseUser:      upr.BaseUser,
 	}
 
 	return newUser, nil
@@ -85,11 +75,11 @@ func (rg *RegisteringUser) createPwdResetToken(killPassword bool) (User, error) 
 // db.al_users.insertOne({username:"pouet", password:"plop"})
 // curl http://localhost:8000/users/register --data '{"username": "plop", "password": "plop"}'
 type User struct {
-	ID              primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
-	RegisteringUser `bson:",inline"`
-	Username        string        `json:"username,omitempty" bson:"username,omitempty"`
-	IsAdmin         bool          `json:"isAdmin" bson:"isAdmin"`
-	PwdResetToken   pwdResetToken `json:"-" bson:"pwdResetToken,omitempty"` // not present in JSON: https://golang.org/pkg/encoding/json/
+	ID            primitive.ObjectID `json:"id,omitempty" bson:"_id,omitempty"`
+	BaseUser      `bson:",inline"`
+	Username      string        `json:"username,omitempty" bson:"username,omitempty"`
+	IsAdmin       bool          `json:"isAdmin" bson:"isAdmin"`
+	PwdResetToken pwdResetToken `json:"-" bson:"pwdResetToken,omitempty"` // not present in JSON: https://golang.org/pkg/encoding/json/
 }
 
 // AuthenticatedUser has the password field so that when the server sends
@@ -109,17 +99,17 @@ type authenticatedUser struct {
 // PwdResetToken is the token to define a password reset request. An user can have only one
 // password reset request at a time. Such token is also used on user account generation
 type pwdResetToken struct {
-	Token     string    `json:"resetToken" bson:"token"`
-	CreatedAt time.Time `json:"createdAt" bson:"createdAt"`
-	ExpiresAt time.Time `json:"expiresAt" bson:"expiresAt"`
-	ResetType string    `json:"resetType" bson:"resetType"`
+	Token       string    `json:"resetToken" bson:"token"`
+	CreatedAt   time.Time `json:"createdAt" bson:"createdAt"`
+	ExpiresAt   time.Time `json:"expiresAt" bson:"expiresAt"`
+	RequestType int8      `json:"requestType" bson:"requestType"`
 }
 
 // pwdChangeRequest defines how a client changes an user password
 type pwdChangeRequest struct {
 	Token    string `json:"token"`
 	Password string `json:"password"`
-	Username string `json:"username"` // only for new account
+	Username string `json:"username,omitempty"` // only for new account
 }
 
 // ----------------------------------------------------------------------------

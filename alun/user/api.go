@@ -27,9 +27,9 @@ func init() {
 
 	UserAPI.AddPublicEndpoint("login", "POST", core.APIv1, authUser)
 	UserAPI.AddProtectedEndpoint("logout", "POST", core.APIv1, core.CheckIfLogged, logoutUser)
-	UserAPI.AddPublicEndpoint("register", "POST", core.APIv1, registerUser)
-	UserAPI.AddPublicEndpoint("password/update", "POST", core.APIv1, handleChangePassword)
-	UserAPI.AddPublicEndpoint("password/change-request", "POST", core.APIv1, handleChangePassword)
+	UserAPI.AddPublicEndpoint("register", "POST", core.APIv1, handleRequestPassword)
+	UserAPI.AddPublicEndpoint("password/update", "POST", core.APIv1, handleUpdatePassword)
+	UserAPI.AddPublicEndpoint("password/request", "POST", core.APIv1, handleRequestPassword)
 	UserAPI.AddProtectedEndpoint("detail/{userId}", "GET", core.APIv1, isAdminOrOwnUser, handleGetUser)
 	UserAPI.AddProtectedEndpoint("detail/{userId}", "PUT", core.APIv1, isAdminOrOwnUser, handleUpdateUser)
 	UserAPI.AddProtectedEndpoint("detail/{userId}", "DELETE", core.APIv1, isAdminOrOwnUser, handleDeleteUser)

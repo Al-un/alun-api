@@ -63,6 +63,7 @@ func findUserByEmailPassword(email string, clearPassword string) (User, error) {
 	return authUser.User, nil
 }
 
+// isEmailAlreadyRegistered checks if an email is available
 func isEmailAlreadyRegistered(email string) (bool, *core.ServiceMessage) {
 	filter := bson.M{"email": email}
 	userCount, err := dbUserCollection.CountDocuments(context.TODO(), filter)
@@ -75,7 +76,7 @@ func isEmailAlreadyRegistered(email string) (bool, *core.ServiceMessage) {
 	return userCount > 0, nil
 }
 
-// findUserById fetches an user for a given ID
+// findUserById fetches an user for a given ID in string format
 func findUserByID(userID string) (User, error) {
 	var user User
 	id, _ := primitive.ObjectIDFromHex(userID)
@@ -116,8 +117,7 @@ func findLoginByToken(jwt string) (Login, error) {
 //
 // returns newly created user
 func createUser(user User) (User, *core.ServiceMessage) {
-
-	userLogger.Verbose("Checking %+v", user)
+	userLogger.Verbose("Checking user for creation: %+v", user)
 
 	// Check if email is already registered
 	isEmailAlreadyTaken, errMsg := isEmailAlreadyRegistered(user.Email)
@@ -130,13 +130,15 @@ func createUser(user User) (User, *core.ServiceMessage) {
 		return User{}, hasEmailNotAvailable
 	}
 
-	userLogger.Verbose("Creating %+v", user)
+	// Create new user
+	userLogger.Verbose("Creating user %+v", user)
 	createdUser, err := dbUserCollection.InsertOne(context.TODO(), user)
 	if err != nil {
 		userLogger.Warn("Error when creating user of email %s: %v", user.Email, err)
 		return User{}, core.NewServiceErrorMessage(err)
 	}
 
+	// Fetch the user
 	var newUser User
 	filter := bson.M{"_id": createdUser.InsertedID}
 	if err := dbUserCollection.FindOne(context.TODO(), filter).Decode(&newUser); err != nil {
@@ -145,45 +147,6 @@ func createUser(user User) (User, *core.ServiceMessage) {
 	userLogger.Verbose("[User] Created newUser <%+v>", newUser)
 
 	return newUser, nil
-}
-
-func changePassword(pwdChgRequest pwdChangeRequest) (authenticatedUser, *core.ServiceMessage) {
-
-	// Is password reset token found
-	var user User
-	filter := bson.M{"pwdResetToken.token": pwdChgRequest.Token}
-	if err := dbUserCollection.FindOne(context.TODO(), filter).Decode(&user); err != nil {
-		userLogger.Debug(">>> %v", err)
-		return authenticatedUser{}, pwdResetTokenNotFound
-	}
-
-	// Is password reset token expired?
-	if user.PwdResetToken.ExpiresAt.Before(time.Now()) {
-		return authenticatedUser{}, pwdResetTokenExpired
-	}
-
-	// Hash password
-	hashedPassword := hashPassword(pwdChgRequest.Password)
-
-	update := bson.M{
-		// https://docs.mongodb.com/manual/reference/operator/update/set/
-		"$set": bson.M{
-			"password": hashedPassword,
-		},
-		// https://docs.mongodb.com/manual/reference/operator/update/unset/
-		"$unset": bson.M{
-			// https://stackoverflow.com/a/6852039/4906586
-			"pwdResetToken": 1,
-		},
-	}
-
-	var updatedUser authenticatedUser
-
-	if err := dbUserCollection.FindOneAndUpdate(context.TODO(), filter, update).Decode(&updatedUser); err != nil {
-		return authenticatedUser{}, core.NewServiceErrorMessage(err)
-	}
-
-	return updatedUser, nil
 }
 
 // createLogin just saves the login in the DB
@@ -212,7 +175,6 @@ func updateUser(userID string, user User) (User, error) {
 	update := bson.M{
 		"$set": bson.M{
 			"username": user.Username,
-			// "isAdmin":  user.IsAdmin,
 		},
 	}
 
@@ -223,6 +185,72 @@ func updateUser(userID string, user User) (User, error) {
 	}
 	userLogger.Debug("[User] Creating user <%v> with result <%v>", user, updatedUser)
 	return updatedUser, nil
+}
+
+func updatePassword(pwdChgRequest pwdChangeRequest) (authenticatedUser, *core.ServiceMessage) {
+
+	// Is password reset token found
+	var user User
+	filter := bson.M{"pwdResetToken.token": pwdChgRequest.Token}
+	if err := dbUserCollection.FindOne(context.TODO(), filter).Decode(&user); err != nil {
+		userLogger.Debug("[User] Getting user from PwdResetToken error: %v", err)
+		return authenticatedUser{}, pwdResetTokenNotFound
+	}
+
+	// Is password reset token expired?
+	if user.PwdResetToken.ExpiresAt.Before(time.Now()) {
+		return authenticatedUser{}, pwdResetTokenExpired
+	}
+
+	// Hash password
+	hashedPassword := hashPassword(pwdChgRequest.Password)
+
+	// Update password and username if application
+	updatedFields := bson.M{
+		"password": hashedPassword,
+	}
+	if user.PwdResetToken.RequestType == userPwdRequestNewUser {
+		updatedFields = bson.M{
+			"password": hashedPassword,
+			"username": pwdChgRequest.Username,
+		}
+	}
+
+	// Also unset pwdResetToken
+	update := bson.M{
+		// https://docs.mongodb.com/manual/reference/operator/update/set/
+		"$set": updatedFields,
+		// https://docs.mongodb.com/manual/reference/operator/update/unset/
+		"$unset": bson.M{
+			// https://stackoverflow.com/a/6852039/4906586
+			"pwdResetToken": 1,
+		},
+	}
+
+	var updatedUser authenticatedUser
+
+	if err := dbUserCollection.FindOneAndUpdate(context.TODO(), filter, update).Decode(&updatedUser); err != nil {
+		return authenticatedUser{}, core.NewServiceErrorMessage(err)
+	}
+
+	return updatedUser, nil
+}
+
+// updatePwdResetToken saves the new password reset token for an user. As the userId
+// is not provided by the front-end, email is used as an index
+func updatePwdResetToken(user *User) *core.ServiceMessage {
+	filter := bson.M{"email": user.Email}
+	update := bson.M{
+		"$set": bson.M{
+			"pwdResetToken": user.PwdResetToken,
+		},
+	}
+
+	if res := dbUserCollection.FindOneAndUpdate(context.TODO(), filter, update); res.Err() != nil {
+		return core.NewServiceErrorMessage(res.Err())
+	}
+
+	return nil
 }
 
 // invalidateToken invalidates the login for the given token by setting up a non-active

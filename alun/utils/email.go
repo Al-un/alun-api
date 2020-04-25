@@ -13,6 +13,8 @@ const (
 	defaultSender = "Al-un.fr <no-reply@al-un.fr>"
 	// EmailTemplateUserRegistration when sending email for new user
 	EmailTemplateUserRegistration = "user_registration"
+	// EmailTemplateUserPwdReset when user is requesting a password reset
+	EmailTemplateUserPwdReset = "user_pwd-reset"
 )
 
 var (

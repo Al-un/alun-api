@@ -53,42 +53,52 @@ func logoutUser(w http.ResponseWriter, r *http.Request, claims core.JwtClaims) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// RegisterUser create a new user.
+// handleRequestPassword handles a password request which can be for a new user
+// (user creation) or an existing user (password reset)
 //
-// Registration is based on a single email address to which a confirmation email
-// will be sent to. With the provided token, user can set up a password
-func registerUser(w http.ResponseWriter, r *http.Request) {
-	var registeringUser RegisteringUser
-	json.NewDecoder(r.Body).Decode(&registeringUser)
+// User is then sent the appropriate email
+func handleRequestPassword(w http.ResponseWriter, r *http.Request) {
+	var pwdReq PasswordRequest
+	json.NewDecoder(r.Body).Decode(&pwdReq)
 
 	// TODO better email check
-	if registeringUser.Email == "" {
+	userLogger.Verbose("Got password reset %+v", pwdReq)
+	if pwdReq.Email == "" {
 		hasNoEmail.Write(w, r)
 		return
 	}
 
-	// Prepare a proper User
-	toCreateUser, err := registeringUser.prepareForCreation()
+	// Generate token
+	toHandleUser, err := pwdReq.createPwdResetToken()
 	if err != nil {
 		core.HandleServerError(w, r, err)
 		return
 	}
+	userLogger.Verbose("Got PwdResetToken %+v", toHandleUser)
 
+	if pwdReq.RequestType == userPwdRequestNewUser {
+		doCreateUser(w, r, toHandleUser, &pwdReq)
+	} else if pwdReq.RequestType == userPwdRequestPwdReset {
+		doResetPassword(w, r, toHandleUser, &pwdReq)
+	}
+}
+
+func doCreateUser(w http.ResponseWriter, r *http.Request, newUser *User, pwdReq *PasswordRequest) {
 	// Email unicity is checked by DAO
-	createdUser, errMsg := createUser(toCreateUser)
+	createdUser, errMsg := createUser(*newUser)
 	if errMsg != nil {
 		errMsg.Write(w, r)
 		return
 	}
 
 	// Email: Password setup url
-	subject := fmt.Sprintf("Welcome to %s", core.ClientDomain)
-	destURL := fmt.Sprintf("%s/user/password/?t=%s",
-		core.ClientDomain, createdUser.PwdResetToken.Token)
+	subject := "Welcome to Al-un.fr"
+	destURL := fmt.Sprintf("%s%s",
+		pwdReq.RedirectURL, createdUser.PwdResetToken.Token)
 
 	// No go-routine: wait for email being sent before answering the client
 	utils.SendNoReplyEmail(
-		[]string{toCreateUser.Email},
+		[]string{createdUser.Email},
 		subject,
 		utils.EmailTemplateUserRegistration,
 		struct{ URL string }{URL: destURL},
@@ -97,24 +107,41 @@ func registerUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func handleChangePassword(w http.ResponseWriter, r *http.Request) {
+func doResetPassword(w http.ResponseWriter, r *http.Request, user *User, pwdReq *PasswordRequest) {
+	// Email unicity is checked by DAO
+	errMsg := updatePwdResetToken(user)
+	if errMsg != nil {
+		errMsg.Write(w, r)
+		return
+	}
+
+	// Email: Password setup url
+	subject := "Password reset Al-un.fr"
+	destURL := fmt.Sprintf("%s%s",
+		pwdReq.RedirectURL, user.PwdResetToken.Token)
+
+	// TODO: update email
+	utils.SendNoReplyEmail(
+		[]string{user.Email},
+		subject,
+		utils.EmailTemplateUserPwdReset,
+		struct{ URL string }{URL: destURL},
+	)
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func handleUpdatePassword(w http.ResponseWriter, r *http.Request) {
 	var pwdChgRequest pwdChangeRequest
 	json.NewDecoder(r.Body).Decode(&pwdChgRequest)
 
-	authUser, err := changePassword(pwdChgRequest)
+	authUser, err := updatePassword(pwdChgRequest)
 	if err != nil {
 		err.Write(w, r)
 		return
 	}
 
 	userLogger.Verbose("Password updated for %+v", authUser)
-
-	w.WriteHeader(http.StatusNoContent)
-}
-
-func handleRequestPasswordChange(w http.ResponseWriter, r *http.Request) {
-	var pwdChgRequest pwdChangeRequest
-	json.NewDecoder(r.Body).Decode(&pwdChgRequest)
 
 	w.WriteHeader(http.StatusNoContent)
 }
