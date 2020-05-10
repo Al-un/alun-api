@@ -97,7 +97,7 @@ func doCreateUser(w http.ResponseWriter, r *http.Request, newUser *User, pwdReq 
 		pwdReq.RedirectURL, createdUser.PwdResetToken.Token)
 
 	// No go-routine: wait for email being sent before answering the client
-	utils.SendNoReplyEmail(
+	alunEmail.SendNoReplyEmail(
 		[]string{createdUser.Email},
 		subject,
 		utils.EmailTemplateUserRegistration,
@@ -121,7 +121,7 @@ func doResetPassword(w http.ResponseWriter, r *http.Request, user *User, pwdReq 
 		pwdReq.RedirectURL, user.PwdResetToken.Token)
 
 	// TODO: update email
-	utils.SendNoReplyEmail(
+	alunEmail.SendNoReplyEmail(
 		[]string{user.Email},
 		subject,
 		utils.EmailTemplateUserPwdReset,
