@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	coreLogger = logger.NewConsoleLogger(logger.LogLevelVerbose)
+	coreLogger logger.Logger = logger.NewConsoleLogger(logger.LogLevelVerbose)
 
 	// ClientDomain refers to the expected domain of the client application
 	ClientDomain string

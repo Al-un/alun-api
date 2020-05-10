@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Al-un/alun-api/pkg/logger"
 	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -21,11 +22,11 @@ import (
 // variable
 //
 // This helper does not guarantee that dotenv files are properly loaded
-func MongoConnectFromEnvVar(envVarName string) (*mongo.Client, *mongo.Database, error) {
+func MongoConnectFromEnvVar(envVarName string, logger logger.Logger) (*mongo.Client, *mongo.Database, error) {
 	// Ensure that dotenv file is/are loaded
 	err := godotenv.Load()
 	if err != nil {
-		// coreLogger.Warn("Error when loading .env file: %v", err)
+		// logger.Warn("Error when loading .env file: %v", err)
 		// return nil, nil, err
 	}
 
@@ -35,14 +36,19 @@ func MongoConnectFromEnvVar(envVarName string) (*mongo.Client, *mongo.Database, 
 		return nil, nil, errors.New(fmt.Sprintf("MongoDB URL not found for variable: %s", envVarName))
 	}
 
-	return MongoConnectToDb(mongoDbURI)
+	return MongoConnectToDb(mongoDbURI, logger)
 }
 
 // MongoConnectToDb creates a Mongo client instance from an URI as well as the
 // Mongo database instance depending on the database name in the URI
-func MongoConnectToDb(mongoDbURI string) (*mongo.Client, *mongo.Database, error) {
+func MongoConnectToDb(mongoDbURI string, logger logger.Logger) (*mongo.Client, *mongo.Database, error) {
+	localLogger := logger
+	if localLogger == nil {
+		localLogger = coreLogger
+	}
+
 	dbConnectionString, dbName := MongoParseDbURI(mongoDbURI)
-	coreLogger.Debug("[MongoDB] Loading connection info [%v][%v]", dbConnectionString, dbName)
+	localLogger.Debug("[MongoDB] Loading connection info [%v][%v]", dbConnectionString, dbName)
 
 	// Client options
 	clientOptions := options.Client().ApplyURI(dbConnectionString)
@@ -50,7 +56,7 @@ func MongoConnectToDb(mongoDbURI string) (*mongo.Client, *mongo.Database, error)
 	// Try to connect to DB and init the MongoClient
 	mongoClient, err := mongo.Connect(context.TODO(), clientOptions)
 	if err != nil {
-		coreLogger.Fatal(2, "[MongoDB][ERROR] connection to %s failed:\n%v", dbConnectionString, err)
+		localLogger.Fatal(2, "[MongoDB][ERROR] connection to %s failed:\n%v", dbConnectionString, err)
 		return nil, nil, err
 	}
 
@@ -60,7 +66,7 @@ func MongoConnectToDb(mongoDbURI string) (*mongo.Client, *mongo.Database, error)
 		log.Fatal("[MongoDB][ERROR] ping error: ", err)
 		return nil, nil, err
 	}
-	coreLogger.Verbose("[MongoDB] Connected to database \\o/")
+	localLogger.Verbose("[MongoDB] Connected to database \\o/")
 
 	// Init the database instance
 	mongoDatabase := mongoClient.Database(dbName)
