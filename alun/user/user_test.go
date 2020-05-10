@@ -13,10 +13,13 @@ import (
 )
 
 var (
-	testRouter      *mux.Router
-	userNewEmail    string
-	userNewPassword string
-	userNewUsername string
+	testRouter        *mux.Router
+	testAuthToken     string
+	userNewEmail      string
+	userNewPassword   string
+	userNewUsername   string
+	userNewID         string
+	userNewResetToken string
 )
 
 func TestMain(m *testing.M) {
