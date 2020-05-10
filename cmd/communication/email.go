@@ -14,6 +14,7 @@ import (
 // ----------------------------------------------------------------------------
 var (
 	alunAccount communication.EmailConfiguration
+	alunEmail   utils.AlunEmailSender
 	sender      string
 	recipients  []string
 )
@@ -42,6 +43,8 @@ func init() {
 		Host:     accountServer,
 		Port:     accountPort,
 	}
+
+	alunEmail = utils.GetAlunEmail()
 
 	// Misc
 	sender = "Al-un.fr <no-reply@al-un.fr>"
@@ -98,7 +101,7 @@ func sendHTMLEmail() {
 }
 
 func sendNoReplyEmail() {
-	utils.SendNoReplyEmail(
+	alunEmail.SendNoReplyEmail(
 		recipients,
 		"Testing no-reply email",
 		"user_registration",

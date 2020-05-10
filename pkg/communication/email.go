@@ -25,6 +25,13 @@ Actions required:
 - Adding "From" in message headers to get accepted by Gmail
 **/
 
+// EmailSender qualifies an entity which is capable to send an `EmailMessage`
+//
+// A given email sender does not have to cover all email format (HTML, text)
+type EmailSender interface {
+	Send(emailMsg EmailMessage) error
+}
+
 // EmailConfiguration configures an email sender account.
 //
 // There is no default email configuration so email credentials are required.
@@ -51,7 +58,7 @@ type EmailMessage struct {
 }
 
 // Send sends the provided message given an email configuration
-func (emailCfg *EmailConfiguration) Send(emailMsg EmailMessage) error {
+func (emailCfg EmailConfiguration) Send(emailMsg EmailMessage) error {
 
 	// Build email to send
 	msgHeaders := make(map[string]string)
