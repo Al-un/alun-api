@@ -19,7 +19,7 @@ var dbMemoCollection *mongo.Collection
 
 // Init the connection with MongoDB upon app initialisation
 func init() {
-	_, memoMongoDb, err := core.MongoConnectFromEnvVar(utils.EnvVarMemoDbURL)
+	_, memoMongoDb, err := core.MongoConnectFromEnvVar(utils.EnvVarMemoDbURL, memoLogger)
 	if err != nil {
 		memoLogger.Fatal(1, "%v", err)
 	}
