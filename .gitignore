@@ -2,5 +2,8 @@
 .env
 .env.*
 
+# Test out
+*.out
+
 # Various temporary stuff
 pouet.*
