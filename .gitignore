@@ -4,6 +4,7 @@
 
 # Test out
 *.out
+cover.html
 
 # Various temporary stuff
 pouet.*
