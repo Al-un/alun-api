@@ -7,6 +7,7 @@
   - [MongoDB](#mongodb)
     - [Queries](#queries)
 - [Heroku](#heroku)
+- [Notes](#notes)
 
 API for al-un.fr
 
@@ -65,3 +66,16 @@ heroku accounts:set al-un
 heroku apps:create --region=eu --buildpack=heroku/go alun-api
 heroku addons:create mongolab:sandbox --app alun-api
 ```
+
+## Notes
+
+**Testing**:
+
+- https://blog.alexellis.io/golang-writing-unit-tests/
+- https://stackoverflow.com/questions/47045445/idiomatic-way-to-pass-variables-to-test-cases-in-golang
+- https://blog.questionable.services/article/testing-http-handlers-go/
+- https://medium.com/@matryer/5-simple-tips-and-tricks-for-writing-unit-tests-in-golang-619653f90742
+- https://stackoverflow.com/questions/23729790/how-can-i-do-test-setup-using-the-testing-package-in-go
+- http://cs-guy.com/blog/2015/01/test-main/
+- https://www.toptal.com/go/your-introductory-course-to-testing-with-go
+- https://lanre.wtf/blog/2017/04/08/testing-http-handlers-go/
