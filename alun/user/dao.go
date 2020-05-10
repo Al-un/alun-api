@@ -27,8 +27,8 @@ var dbUserCollection *mongo.Collection
 var dbUserLoginCollection *mongo.Collection
 
 // Init the connection with MongoDB upon app initialisation
-func init() {
-	_, mongoDb, err := core.MongoConnectFromEnvVar(utils.EnvVarUserDbURL)
+func initDao() {
+	_, mongoDb, err := core.MongoConnectFromEnvVar(utils.EnvVarUserDbURL, userLogger)
 	if err != nil {
 		userLogger.Fatal(1, "%v", err)
 	}

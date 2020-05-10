@@ -6,13 +6,16 @@
 package user
 
 import (
+	"os"
+
+	"github.com/Al-un/alun-api/alun/utils"
 	"github.com/Al-un/alun-api/pkg/logger"
 )
 
 var (
-	userLogger = logger.NewConsoleLogger(logger.LogLevelVerbose)
-	// pwdSecretSalt is used ONLY as a salt for hashing password
-	pwdSecretSalt string
+	userLogger    logger.Logger
+	pwdSecretSalt string // pwdSecretSalt is used ONLY as a salt for hashing password
+	alunEmail     utils.AlunEmailSender
 )
 
 const (
@@ -20,5 +23,30 @@ const (
 )
 
 func init() {
-	pwdSecretSalt = defaultPwdSalt
+	if utils.IsTest() {
+		userLogger = logger.NewSilenceLogger()
+		alunEmail = utils.GetDummyEmail()
+	}
+
+	// --- Init logger
+	if userLogger == nil {
+		userLogger = logger.NewConsoleLogger(logger.LogLevelVerbose)
+	}
+
+	// --- Init salts
+	pwdSecretSalt = os.Getenv(utils.EnvVarUserSaltPwd)
+	if pwdSecretSalt == "" {
+		pwdSecretSalt = defaultPwdSalt
+	}
+
+	// --- Init Email
+	if alunEmail == nil {
+		utils.GetAlunEmail()
+	}
+
+	// --- Init DAO
+	initDao()
+
+	// ---- Init API
+	initAPI()
 }

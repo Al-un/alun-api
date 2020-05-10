@@ -20,7 +20,7 @@ var isAdminOrOwnUser = func(r *http.Request, jwtClaims core.JwtClaims) bool {
 	return userID == jwtClaims.UserID
 }
 
-func init() {
+func initAPI() {
 	apiRoot := "users"
 	UserAPI = core.NewAPI(apiRoot)
 	UserAPI.AddMiddleware(core.AddJSONHeaders)
