@@ -79,3 +79,5 @@ heroku addons:create mongolab:sandbox --app alun-api
 - http://cs-guy.com/blog/2015/01/test-main/
 - https://www.toptal.com/go/your-introductory-course-to-testing-with-go
 - https://lanre.wtf/blog/2017/04/08/testing-http-handlers-go/
+- https://stackoverflow.com/questions/44325232/are-tests-executed-in-parallel-in-go-or-one-by-one/44326377#44326377
+- https://blog.golang.org/subtests
