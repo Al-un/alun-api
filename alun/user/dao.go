@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // ----------------------------------------------------------------------------
@@ -172,6 +173,12 @@ func updateUser(userID string, user User) (User, error) {
 	id, _ := primitive.ObjectIDFromHex(userID)
 	filter := bson.M{"_id": id}
 
+	var returnOpt options.ReturnDocument = 1
+
+	options := &options.FindOneAndUpdateOptions{
+		ReturnDocument: &(returnOpt),
+	}
+
 	update := bson.M{
 		"$set": bson.M{
 			"username": user.Username,
@@ -180,7 +187,7 @@ func updateUser(userID string, user User) (User, error) {
 
 	var updatedUser User
 
-	if err := dbUserCollection.FindOneAndUpdate(context.TODO(), filter, update).Decode(&updatedUser); err != nil {
+	if err := dbUserCollection.FindOneAndUpdate(context.TODO(), filter, update, options).Decode(&updatedUser); err != nil {
 		return User{}, err
 	}
 	userLogger.Debug("[User] Creating user <%v> with result <%v>", user, updatedUser)
