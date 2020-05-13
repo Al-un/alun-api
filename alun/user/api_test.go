@@ -223,7 +223,6 @@ func TestDeleteUser(t *testing.T) {
 	test.CheckHTTPStatus(t, rr, http.StatusNoContent)
 
 	_, err = findUserByID(userNewID)
-	fmt.Printf(">>> %+v\n", err)
 	if err == nil {
 		t.Errorf("DeleteUser did not delete the user in the database")
 	}
