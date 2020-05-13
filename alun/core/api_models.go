@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Al-un/alun-api/pkg/logger"
 	"github.com/gorilla/mux"
 )
 
@@ -27,6 +28,7 @@ type API struct {
 	middlewares []EndpointAdapter // list of standard HTTP Handler
 	endpoints   []APIEndpoint
 	urlBuilder  URLBuilder // how endpoints URL are built
+	logger      logger.Logger
 }
 
 // APIEndpoint maps a handler (authenticated or standard) with an URL pattern
@@ -65,7 +67,7 @@ type URLBuilder func(root string, version string, url string) string
 //
 // - Allowed CORS headers and hosts are, for the moment, "*"
 // - By default, the JSON middleware is always added
-func NewAPI(root string) *API {
+func NewAPI(root string, logger logger.Logger) *API {
 	// init
 	api := &API{
 		root:        root,
@@ -73,6 +75,7 @@ func NewAPI(root string) *API {
 		corsHeaders: "*",
 		endpoints:   make([]APIEndpoint, 0), // explicitly define an empty array
 		urlBuilder:  URLDefaultBuilder,
+		logger:      logger,
 	}
 
 	return api
@@ -108,7 +111,7 @@ func (api *API) addEndpoint(endpoint APIEndpoint) {
 		endpoint.httpMethod != http.MethodPatch &&
 		endpoint.httpMethod != http.MethodPut &&
 		endpoint.httpMethod != http.MethodDelete {
-		coreLogger.Fatal(1, "Cannot call 'AddHandler' an invalid method \"%s\" for URL %s/%s/%s",
+		api.logger.Fatal(1, "Cannot call 'AddHandler' an invalid method \"%s\" for URL %s/%s/%s",
 			endpoint.httpMethod, api.root, endpoint.version, endpoint.url)
 	}
 
@@ -123,7 +126,7 @@ func (api *API) addEndpoint(endpoint APIEndpoint) {
 		handler = DoIfAccess(endpoint.accessChecker, endpoint.protectedHandler).ServeHTTP
 	} else {
 		// Error: missing handler
-		coreLogger.Fatal(1, "[API] Endpoint %s:%s does not have any handler", endpoint.httpMethod, endpoint.url)
+		api.logger.Fatal(1, "[API] Endpoint %s:%s does not have any handler", endpoint.httpMethod, endpoint.url)
 		return
 	}
 
@@ -201,7 +204,7 @@ func (api *API) LoadInRouter(router *mux.Router) {
 
 	for _, endpoint := range api.endpoints {
 		routeURL := api.urlBuilder(api.root, endpoint.version, endpoint.url)
-		coreLogger.Debug("[API] \"%s\": URL <%s>", endpoint.httpMethod, routeURL)
+		api.logger.Debug("[API] \"%s\": URL <%s>", endpoint.httpMethod, routeURL)
 
 		(*router).Handle(
 			routeURL,
@@ -220,7 +223,7 @@ func (api *API) LoadInRouter(router *mux.Router) {
 		corsOptionsMap[routeURL] = endpointDefinition
 	}
 
-	coreLogger.Verbose("%v", corsOptionsMap)
+	api.logger.Verbose("%v", corsOptionsMap)
 
 	// Add CORS handlers
 	for endpoint, methods := range corsOptionsMap {

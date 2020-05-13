@@ -22,7 +22,7 @@ var isAdminOrOwnUser = func(r *http.Request, jwtClaims core.JwtClaims) bool {
 
 func init() {
 	apiRoot := "memos"
-	MemoAPI = core.NewAPI(apiRoot)
+	MemoAPI = core.NewAPI(apiRoot, memoLogger)
 	MemoAPI.AddMiddleware(core.AddJSONHeaders)
 
 	MemoAPI.AddProtectedEndpoint("", "GET", core.APIv1, core.CheckIfLogged, handleListMemo)

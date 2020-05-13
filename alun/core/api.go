@@ -9,12 +9,12 @@ func SetupRouter(isMonolithic bool, apis ...*API) *mux.Router {
 	router := mux.NewRouter()
 
 	// Global middlewares
-	router.Use(LoggerInOutRequest)
+	// router.Use(LoggerInOutRequest)
 
 	for _, api := range apis {
 		if isMonolithic {
 			// In monolithic mode, each service has a specific root
-			coreLogger.Debug("[API] Loading API of root \"%s\"", api.root)
+			api.logger.Debug("[API] Loading API of root \"%s\"", api.root)
 		} else {
 			// In microservices mode, there is no need to have a root
 			api.root = ""

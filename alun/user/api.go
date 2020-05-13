@@ -22,7 +22,7 @@ var isAdminOrOwnUser = func(r *http.Request, jwtClaims core.JwtClaims) bool {
 
 func initAPI() {
 	apiRoot := "users"
-	UserAPI = core.NewAPI(apiRoot)
+	UserAPI = core.NewAPI(apiRoot, userLogger)
 	UserAPI.AddMiddleware(core.AddJSONHeaders)
 
 	UserAPI.AddPublicEndpoint("login", "POST", core.APIv1, authUser)
