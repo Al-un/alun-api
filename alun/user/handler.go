@@ -17,12 +17,14 @@ import (
 func authUser(w http.ResponseWriter, r *http.Request) {
 
 	// --- JSON-based authentication
-	var user authenticatedUser
-	json.NewDecoder(r.Body).Decode(&user)
-	if user.Email != "" && user.Password != "" {
-		userLogger.Verbose("JSON authentication: %s/%s", user.Email, user.Password)
-		authenticateCredentials(user.Email, user.Password)(w)
-		return
+	if r.Body != nil {
+		var user authenticatedUser
+		json.NewDecoder(r.Body).Decode(&user)
+		if user.Email != "" && user.Password != "" {
+			userLogger.Verbose("JSON authentication: %s/%s", user.Email, user.Password)
+			authenticateCredentials(user.Email, user.Password)(w)
+			return
+		}
 	}
 
 	// --- Header-based authentication
