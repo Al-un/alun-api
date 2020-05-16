@@ -1,4 +1,4 @@
-package test
+package testutils
 
 import (
 	"bytes"
@@ -73,7 +73,7 @@ func (at *APITester) TestPath(t *testing.T, apiTest APITestInfo) *httptest.Respo
 	rr := httptest.NewRecorder()
 	at.router.ServeHTTP(rr, req)
 
-	CheckHTTPStatus(t, 3, rr, apiTest.ExpectedHTTPStatus)
+	CheckHTTPStatus(t, CallLvlHelperMethod, rr, apiTest.ExpectedHTTPStatus)
 
 	return rr
 }

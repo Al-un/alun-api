@@ -1,4 +1,4 @@
-package test
+package testutils
 
 import (
 	"fmt"
@@ -6,6 +6,13 @@ import (
 	"reflect"
 	"runtime"
 	"testing"
+)
+
+const (
+	// CallLvlTestFile to use when Assert() is used in a test file
+	CallLvlTestFile = 2
+	// CallLvlHelperMethod to user when Asset() is used from a helper method
+	CallLvlHelperMethod = 3
 )
 
 // copied from https://github.com/benbjohnson/testing
