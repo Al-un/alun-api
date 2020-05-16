@@ -301,6 +301,19 @@ func deleteUser(userID string) int64 {
 		userLogger.Info("[User] error in user deletion: ", err)
 	}
 
-	userLogger.Debug("[User] Deleting ID <%v>: %d count(s)", userID, d.DeletedCount)
+	userLogger.Debug("Deleting User of ID <%v>: %d count(s)", userID, d.DeletedCount)
+	return d.DeletedCount
+}
+
+func deleteLoginByUserID(userID string) int64 {
+	id, _ := primitive.ObjectIDFromHex(userID)
+	filter := bson.M{"userId": id}
+
+	d, err := dbUserLoginCollection.DeleteMany(context.TODO(), filter, nil)
+	if err != nil {
+		userLogger.Info("Error in login deletion: ", err)
+	}
+
+	userLogger.Debug("Deleting Login of userID <%v>: %d count(s)", userID, d.DeletedCount)
 	return d.DeletedCount
 }
