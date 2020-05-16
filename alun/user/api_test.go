@@ -239,8 +239,21 @@ func TestDeleteUser(t *testing.T) {
 		AuthToken:          testAuthToken,
 	})
 
-	_, err := findUserByID(userNewID)
-	if err == nil {
+	isUserIDExist, err := isUserIDExist(userNewID)
+	if err != nil {
+		t.Errorf("DeleteUser isUserIDExist check trigger error %v\n", err)
+	}
+	if isUserIDExist {
 		t.Errorf("DeleteUser did not delete the user in the database")
 	}
+}
+
+func TestDeleteInexistentUser(t *testing.T) {
+	apiTester.TestPath(t, test.APITestInfo{
+		Path:               fmt.Sprintf("detail/%s", userNewID),
+		Method:             "DELETE",
+		Payload:            nil,
+		ExpectedHTTPStatus: http.StatusNotFound,
+		AuthToken:          testAuthToken,
+	})
 }
