@@ -1,7 +1,6 @@
 package user
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -14,11 +13,16 @@ import (
 )
 
 func TestRegisterNewUser(t *testing.T) {
-	apiTester.TestPath(t, "/v1/register", "POST", PasswordRequest{
-		RedirectURL: "http://whatever-url.com?t=",
-		BaseUser:    BaseUser{Email: userNewEmail},
-		RequestType: 1,
-	}, http.StatusNoContent)
+	apiTester.TestPath(t, test.APITestInfo{
+		Path:   "register",
+		Method: "POST",
+		Payload: PasswordRequest{
+			RedirectURL: "http://whatever-url.com?t=",
+			BaseUser:    BaseUser{Email: userNewEmail},
+			RequestType: 1,
+		},
+		ExpectedHTTPStatus: http.StatusNoContent,
+	})
 
 	var newUser User
 	filter := bson.M{"email": userNewEmail}
@@ -38,27 +42,42 @@ func TestRegisterNewUser(t *testing.T) {
 }
 
 func TestRegisterExistingEmail(t *testing.T) {
-	apiTester.TestPath(t, "/v1/register", "POST", PasswordRequest{
-		RedirectURL: "http://whatever-url.com?t=",
-		BaseUser:    BaseUser{Email: userNewEmail},
-		RequestType: 1,
-	}, http.StatusBadRequest)
+	apiTester.TestPath(t, test.APITestInfo{
+		Path:   "register",
+		Method: "POST",
+		Payload: PasswordRequest{
+			RedirectURL: "http://whatever-url.com?t=",
+			BaseUser:    BaseUser{Email: userNewEmail},
+			RequestType: userPwdRequestNewUser,
+		},
+		ExpectedHTTPStatus: http.StatusBadRequest,
+	})
 }
 
 func TestPasswordUpdateNewUser(t *testing.T) {
-	apiTester.TestPath(t, "/v1/password/update", "POST", pwdChangeRequest{
-		Token:    userNewResetToken,
-		Username: userNewUsername,
-		Password: userNewPassword,
-	}, http.StatusNoContent)
+	apiTester.TestPath(t, test.APITestInfo{
+		Path:   "password/update",
+		Method: "POST",
+		Payload: pwdChangeRequest{
+			Token:    userNewResetToken,
+			Username: userNewUsername,
+			Password: userNewPassword,
+		},
+		ExpectedHTTPStatus: http.StatusNoContent,
+	})
 }
 
 func TestPasswordUpdateWrongToken(t *testing.T) {
-	apiTester.TestPath(t, "/v1/password/update", "POST", pwdChangeRequest{
-		Token:    "Pouet1234",
-		Username: userNewUsername,
-		Password: userNewPassword,
-	}, http.StatusBadRequest)
+	apiTester.TestPath(t, test.APITestInfo{
+		Path:   "password/update",
+		Method: "POST",
+		Payload: pwdChangeRequest{
+			Token:    "Pouet1234",
+			Username: userNewUsername,
+			Password: userNewPassword,
+		},
+		ExpectedHTTPStatus: http.StatusBadRequest,
+	})
 }
 
 func TestLoginBasic(t *testing.T) {
@@ -99,10 +118,15 @@ func TestLoginBasic(t *testing.T) {
 // }
 
 func TestLoginJSON(t *testing.T) {
-	rr := apiTester.TestPath(t, "/v1/login", "POST", authenticatedUser{
-		User:     User{BaseUser: BaseUser{Email: userNewEmail}},
-		Password: userNewPassword,
-	}, http.StatusOK)
+	rr := apiTester.TestPath(t, test.APITestInfo{
+		Path:   "login",
+		Method: "POST",
+		Payload: authenticatedUser{
+			User:     User{BaseUser: BaseUser{Email: userNewEmail}},
+			Password: userNewPassword,
+		},
+		ExpectedHTTPStatus: http.StatusOK,
+	})
 
 	var login successfulLogin
 	json.NewDecoder(rr.Body).Decode(&login)
@@ -115,18 +139,28 @@ func TestLoginJSON(t *testing.T) {
 }
 
 func TestLoginJSONBadCredentials(t *testing.T) {
-	apiTester.TestPath(t, "/v1/login", "POST", authenticatedUser{
-		User:     User{BaseUser: BaseUser{Email: userNewEmail}},
-		Password: "wrong password",
-	}, http.StatusForbidden)
+	apiTester.TestPath(t, test.APITestInfo{
+		Path:   "login",
+		Method: "POST",
+		Payload: authenticatedUser{
+			User:     User{BaseUser: BaseUser{Email: userNewEmail}},
+			Password: "Prout password",
+		},
+		ExpectedHTTPStatus: http.StatusForbidden,
+	})
 }
 
 func TestPasswordResetRequest(t *testing.T) {
-	apiTester.TestPath(t, "/v1/password/request", "POST", PasswordRequest{
-		RedirectURL: "http://whatever-url.com?t=",
-		BaseUser:    BaseUser{Email: userNewEmail},
-		RequestType: 0,
-	}, http.StatusNoContent)
+	apiTester.TestPath(t, test.APITestInfo{
+		Path:   "password/request",
+		Method: "POST",
+		Payload: PasswordRequest{
+			RedirectURL: "http://whatever-url.com?t=",
+			BaseUser:    BaseUser{Email: userNewEmail},
+			RequestType: userPwdRequestPwdReset,
+		},
+		ExpectedHTTPStatus: http.StatusNoContent,
+	})
 }
 
 // func TestPasswordResetRequestInvalidEmail(t *testing.T) {
@@ -138,17 +172,13 @@ func TestPasswordResetRequest(t *testing.T) {
 // }
 
 func TestGetUser(t *testing.T) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("/v1/detail/%s", userNewID), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", testAuthToken))
-
-	// We create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response.
-	rr := httptest.NewRecorder()
-	apiTester.ServeHTTP(rr, req)
-
-	test.CheckHTTPStatus(t, rr, http.StatusOK)
+	rr := apiTester.TestPath(t, test.APITestInfo{
+		Path:               fmt.Sprintf("detail/%s", userNewID),
+		Method:             "GET",
+		Payload:            nil,
+		ExpectedHTTPStatus: http.StatusOK,
+		AuthToken:          testAuthToken,
+	})
 
 	var user User
 	json.NewDecoder(rr.Body).Decode(&user)
@@ -159,38 +189,29 @@ func TestGetUser(t *testing.T) {
 }
 
 func TestGetUserNotAuthorized(t *testing.T) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("/v1/detail/%s", "someInvalidID"), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", testAuthToken))
-
-	// We create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response.
-	rr := httptest.NewRecorder()
-	apiTester.ServeHTTP(rr, req)
-
-	test.CheckHTTPStatus(t, rr, http.StatusUnauthorized)
+	apiTester.TestPath(t, test.APITestInfo{
+		Path:               fmt.Sprintf("detail/%s", "someInvalidID"),
+		Method:             "GET",
+		Payload:            nil,
+		ExpectedHTTPStatus: http.StatusUnauthorized,
+		AuthToken:          testAuthToken,
+	})
 }
 
 func TestUpdateUser(t *testing.T) {
 	newUsername := "Prout prout"
-	reqBody, _ := json.Marshal(&User{
-		BaseUser: BaseUser{Email: userNewEmail},
-		Username: newUsername,
-		IsAdmin:  true,
+
+	rr := apiTester.TestPath(t, test.APITestInfo{
+		Path:   fmt.Sprintf("detail/%s", userNewID),
+		Method: "PUT",
+		Payload: User{
+			BaseUser: BaseUser{Email: userNewEmail},
+			Username: newUsername,
+			IsAdmin:  true, // should not be true in DB
+		},
+		ExpectedHTTPStatus: http.StatusOK,
+		AuthToken:          testAuthToken,
 	})
-
-	req, err := http.NewRequest("PUT", fmt.Sprintf("/v1/detail/%s", userNewID), bytes.NewBuffer(reqBody))
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", testAuthToken))
-
-	// We create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response.
-	rr := httptest.NewRecorder()
-	apiTester.ServeHTTP(rr, req)
-
-	test.CheckHTTPStatus(t, rr, http.StatusOK)
 
 	updatedUser, _ := findUserByID(userNewID)
 	if updatedUser.Username != newUsername {
@@ -210,19 +231,15 @@ func TestUpdateUser(t *testing.T) {
 }
 
 func TestDeleteUser(t *testing.T) {
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("/v1/detail/%s", userNewID), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", testAuthToken))
+	apiTester.TestPath(t, test.APITestInfo{
+		Path:               fmt.Sprintf("detail/%s", userNewID),
+		Method:             "DELETE",
+		Payload:            nil,
+		ExpectedHTTPStatus: http.StatusNoContent,
+		AuthToken:          testAuthToken,
+	})
 
-	// We create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response.
-	rr := httptest.NewRecorder()
-	apiTester.ServeHTTP(rr, req)
-
-	test.CheckHTTPStatus(t, rr, http.StatusNoContent)
-
-	_, err = findUserByID(userNewID)
+	_, err := findUserByID(userNewID)
 	if err == nil {
 		t.Errorf("DeleteUser did not delete the user in the database")
 	}

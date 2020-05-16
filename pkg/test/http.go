@@ -12,6 +12,17 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// APITestInfo gathers info for a single test run
+type APITestInfo struct {
+	Path               string
+	Method             string
+	Version            string // default to core.APIv1
+	Payload            interface{}
+	AuthToken          string
+	Headers            map[string]string
+	ExpectedHTTPStatus int
+}
+
 // APITester saves a router and run tests against the saved router
 type APITester struct {
 	router *mux.Router
@@ -28,19 +39,41 @@ func NewAPITester(api *core.API) *APITester {
 	return &APITester{router: testedRouter}
 }
 
-// TestPath tests a single API calls and returns the generated ResponseRecorder
-func (at *APITester) TestPath(t *testing.T, path string, method string, payload interface{}, expectedHTTPStatus int) *httptest.ResponseRecorder {
-	reqBody, _ := json.Marshal(payload)
-	req, err := http.NewRequest(method, path, bytes.NewBuffer(reqBody))
+// TestPath tests a single API call and returns the generated ResponseRecorder
+func (at *APITester) TestPath(t *testing.T, apiTest APITestInfo) *httptest.ResponseRecorder {
+	// Build api path
+	apiPathVersion := apiTest.Version
+	if apiPathVersion == "" {
+		apiPathVersion = core.APIv1
+	}
+	apiPath := fmt.Sprintf("/%s/%s", apiPathVersion, apiTest.Path)
+
+	// Build request
+	var req *http.Request
+	var err error
+	if apiTest.Payload != nil {
+		reqBody, _ := json.Marshal(apiTest.Payload)
+		req, err = http.NewRequest(apiTest.Method, apiPath, bytes.NewBuffer(reqBody))
+	} else {
+		req, err = http.NewRequest(apiTest.Method, apiPath, nil)
+	}
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	// Request headers
+	if apiTest.AuthToken != "" {
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiTest.AuthToken))
+	}
+	for headerKey, headerVal := range apiTest.Headers {
+		req.Header.Set(headerKey, headerVal)
 	}
 
 	// We create a ResponseRecorder (which satisfies http.ResponseWriter) to record the response.
 	rr := httptest.NewRecorder()
 	at.router.ServeHTTP(rr, req)
 
-	CheckHTTPStatus(t, rr, expectedHTTPStatus)
+	CheckHTTPStatus(t, rr, apiTest.ExpectedHTTPStatus)
 
 	return rr
 }
