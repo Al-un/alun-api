@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/Al-un/alun-api/tree/master.svg?style=svg)](https://circleci.com/gh/Al-un/alun-api/tree/master)
+
 # Al-un API <!-- omit in toc -->
 
 - [Docker](#docker)
@@ -83,3 +85,11 @@ heroku addons:create mongolab:sandbox --app alun-api
 - https://blog.golang.org/subtests
 - Testing tips: https://medium.com/@povilasve/go-advanced-tips-tricks-a872503ac859
 - Helpers: https://github.com/benbjohnson/testing
+
+**CircleCI**
+
+- Golang modules: https://circleci.com/blog/go-v1.11-modules-and-circleci/
+- Language guide: https://circleci.com/docs/2.0/language-go/
+- https://itnext.io/go-modules-and-circleci-c0d6fac0b000
+- dependencies location: https://stackoverflow.com/questions/52082783/how-do-i-find-the-go-module-source-cache
+- artifacts: https://circleci.com/docs/2.0/artifacts/
