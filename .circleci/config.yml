@@ -25,6 +25,9 @@ executors:
       # https://hub.docker.com/r/circleci/mongo
       - image: circleci/mongo:4.2.5
         environment:
+          MONGO_INITDB_ROOT_USERNAME: testUser
+          MONGO_INITDB_ROOT_PASSWORD: testPassword
+          MONGO_INITDB_DATABASE: pouet
     working_directory: ~/repo
 
 # ------------------------------------------------------------------------------
@@ -32,6 +35,26 @@ executors:
 # https://circleci.com/docs/2.0/configuration-reference/#commands-requires-version-21
 # ------------------------------------------------------------------------------
 commands:
+  # Loading the repository and the cached dependencies.
+  load-repo:
+    description: "Checkout repository and load dependencies"
+    steps:
+      - checkout
+      - run: echo "CIRCLE_BRANCH <$CIRCLE_BRANCH>"
+      - restore_cache:
+          name: Restore dependencies
+          keys:
+            - alun-api-v1-{{ checksum "go.sum" }}
+      - run:
+          name: Fetch dependencies
+          command: go mod download -json
+      - run: ls -l /go
+      - run: ls -l /go/pkg
+      - run: ls -l /go/pkg/mod
+      - save_cache:
+          key: alun-api-v1-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
 
 # ------------------------------------------------------------------------------
 # Jobs: list of workflow jobs
@@ -40,5 +63,18 @@ jobs:
   test:
     executor: exec-go
     steps:
-      - checkout
+      - load-repo
       - run: echo "helloworld"
+      - run: ls -l ~/repo/
+      - run: cd ~/repo
+      - run:
+          name: "Test"
+          environment:
+            ALUN_MODE: test
+            ALUN_USER_DATABASE_URL: mongodb://testUser:testPassword@localhost:27017/pouet
+          command: go test ./alun/... -coverprofile cover.out -parallel 4
+      - run:
+          name: "Generate coverage report"
+          command: go tool cover -html=cover.out -o cover.html
+      - store_artifacts:
+          path: ~/repo/cover.html
