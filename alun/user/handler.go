@@ -175,7 +175,11 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request, claims core.JwtCla
 
 func handleDeleteUser(w http.ResponseWriter, r *http.Request, claims core.JwtClaims) {
 	userID := core.GetVar(r, "userId")
-	deleteUser(userID)
+	deleteCount := deleteUser(userID)
 
-	w.WriteHeader(http.StatusNoContent)
+	if deleteCount > 0 {
+		w.WriteHeader(http.StatusNoContent)
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+	}
 }
