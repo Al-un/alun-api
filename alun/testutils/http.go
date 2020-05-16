@@ -39,6 +39,14 @@ func NewAPITester(api *core.API) *APITester {
 	return &APITester{router: testedRouter}
 }
 
+// ServeReq serves a given request and returns the ResponseRecorder for the request
+func (at *APITester) ServeReq(req *http.Request) *httptest.ResponseRecorder {
+	rr := httptest.NewRecorder()
+	at.ServeHTTP(rr, req)
+
+	return rr
+}
+
 // TestPath tests a single API call and returns the generated ResponseRecorder
 func (at *APITester) TestPath(t *testing.T, apiTest APITestInfo) *httptest.ResponseRecorder {
 	// Build api path
@@ -73,7 +81,7 @@ func (at *APITester) TestPath(t *testing.T, apiTest APITestInfo) *httptest.Respo
 	rr := httptest.NewRecorder()
 	at.router.ServeHTTP(rr, req)
 
-	CheckHTTPStatus(t, CallLvlHelperMethod, rr, apiTest.ExpectedHTTPStatus)
+	CheckHTTPStatus(t, CallFromHelperMethod, rr, apiTest.ExpectedHTTPStatus)
 
 	return rr
 }
