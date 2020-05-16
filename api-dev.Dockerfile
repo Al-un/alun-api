@@ -1,5 +1,5 @@
-# https://hub.docker.com/layers/golang/library/golang/1.13.10-alpine/images/sha256-cddae2b986dfd92581a082beeb4e7898c8eaa4ac93b618d2dacc5c14983abc20?context=explore
-FROM golang:1.13.10-alpine AS builder
+# https://hub.docker.com/_/golang?tab=tags
+FROM golang:1.14-alpine AS builder
 
 WORKDIR /usr/src/app
 
