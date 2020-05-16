@@ -53,17 +53,6 @@ func setupUsers(t *testing.T) (string, string, string, string) {
 		t.Errorf("Error when setup Basic user %v", err)
 	}
 
-	// adminAuthUser, _ := updatePassword(pwdChangeRequest{
-	// 	Token:    "adminToken",
-	// 	Password: userAdminPassword,
-	// 	Username: userAdminUsername,
-	// })
-	// basicAuthUser, _ := updatePassword(pwdChangeRequest{
-	// 	Token:    "userToken",
-	// 	Password: userAdminPassword,
-	// 	Username: userAdminUsername,
-	// })
-
 	adminJwt, _ := generateJWT(adminUser)
 	basicJwt, _ := generateJWT(basicUser)
 
@@ -96,6 +85,22 @@ func TestE2ERegister(t *testing.T) {
 	var userID string
 	var resetToken string
 	var testInfo test.APITestInfo
+
+	t.Cleanup(func() {
+		if userID != "" {
+			deleteUser(userID)
+			deleteLoginByUserID(userID)
+		} else {
+			toBeDeletedEmails := []string{userEmail}
+			filter := bson.M{
+				"email": bson.M{"$in": toBeDeletedEmails},
+			}
+			_, err := dbUserCollection.DeleteMany(context.TODO(), filter, nil)
+			if err != nil {
+				userLogger.Info("[User] error in user deletion: ", err)
+			}
+		}
+	})
 
 	t.Run("NewUser", func(t *testing.T) {
 		testInfo = test.APITestInfo{
@@ -183,9 +188,6 @@ func TestE2ERegister(t *testing.T) {
 				rr.Body.String())
 		}
 	})
-
-	deleteUser(userID)
-	deleteLoginByUserID(userID)
 }
 
 // func TestLoginBasic(t *testing.T) {
@@ -342,8 +344,11 @@ func TestEndpointDeleteUser(t *testing.T) {
 	t.Parallel()
 
 	_, basicID, _, basicToken := setupUsers(t)
-
 	var testInfo test.APITestInfo
+
+	t.Cleanup(func() {
+		teardownUsers(t)
+	})
 
 	t.Run("DeleteExistingUser", func(t *testing.T) {
 		testInfo = test.APITestInfo{
@@ -368,6 +373,4 @@ func TestEndpointDeleteUser(t *testing.T) {
 		testInfo.ExpectedHTTPStatus = http.StatusNotFound
 		apiTester.TestPath(t, testInfo)
 	})
-
-	teardownUsers(t)
 }
