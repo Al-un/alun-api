@@ -30,13 +30,15 @@ func authUser(w http.ResponseWriter, r *http.Request) {
 	// --- Header-based authentication
 	authHeaders := r.Header["Authorization"]
 	if len(authHeaders) == 0 {
-		rejectAuthentication("Missing Authorization")(w)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Missing Authorization header"))
 		return
 	}
 
 	authHeader := authHeaders[0]
 	if len(authHeader) == 0 {
-		rejectAuthentication("Incorrect Authorization header")(w)
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Empty Authorization header"))
 		return
 	}
 
@@ -110,6 +112,17 @@ func doCreateUser(w http.ResponseWriter, r *http.Request, newUser *User, pwdReq 
 }
 
 func doResetPassword(w http.ResponseWriter, r *http.Request, user *User, pwdReq *PasswordRequest) {
+	isEmailExist, err := isEmailAlreadyRegistered(user.Email)
+	if err != nil {
+		err.Write(w, r)
+		return
+	}
+
+	if !isEmailExist {
+		isEmailNotFound.Write(w, r)
+		return
+	}
+
 	// Email unicity is checked by DAO
 	errMsg := updatePwdResetToken(user)
 	if errMsg != nil {

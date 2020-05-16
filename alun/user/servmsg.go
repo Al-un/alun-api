@@ -29,13 +29,19 @@ var hasNoEmail = &core.ServiceMessage{
 }
 
 var pwdResetTokenNotFound = &core.ServiceMessage{
-	Code:       10202,
-	HTTPStatus: http.StatusBadRequest,
+	Code:       10203,
+	HTTPStatus: http.StatusNotFound,
 	Message:    "Password reset token not found",
 }
 
 var pwdResetTokenExpired = &core.ServiceMessage{
-	Code:       10203,
+	Code:       10204,
 	HTTPStatus: http.StatusBadRequest,
 	Message:    "Password reset token is expired",
+}
+
+var isEmailNotFound = &core.ServiceMessage{
+	Code:       10205,
+	HTTPStatus: http.StatusNotFound,
+	Message:    "Email is not found",
 }

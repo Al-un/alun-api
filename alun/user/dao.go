@@ -195,6 +195,7 @@ func updateUser(userID string, user User) (User, error) {
 
 	update := bson.M{
 		"$set": bson.M{
+			"email":    user.Email,
 			"username": user.Username,
 		},
 	}
