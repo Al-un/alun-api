@@ -1,0 +1,44 @@
+# Built-in environment variables:
+#   > https://circleci.com/docs/2.0/env-vars/#built-in-environment-variables
+# Install CircleCI to validate configuration
+#   > https://circleci.com/docs/2.0/local-cli/#validate-a-circleci-config
+version: 2.1
+
+# ------------------------------------------------------------------------------
+# Workflows
+# ------------------------------------------------------------------------------
+workflows:
+  version: 2
+  alun-api:
+    jobs:
+      - test
+
+# ------------------------------------------------------------------------------
+# Executors: list of executing environments (requires version: 2.1)
+# https://circleci.com/docs/2.0/configuration-reference/#executors-requires-version-21
+# ------------------------------------------------------------------------------
+executors:
+  exec-go:
+    docker:
+      # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
+      - image: circleci/golang:1.14
+      # https://hub.docker.com/r/circleci/mongo
+      - image: circleci/mongo:4.2.5
+        environment:
+    working_directory: ~/repo
+
+# ------------------------------------------------------------------------------
+# Commands: list of re-usable commands (requires version: 2.1)
+# https://circleci.com/docs/2.0/configuration-reference/#commands-requires-version-21
+# ------------------------------------------------------------------------------
+commands:
+
+# ------------------------------------------------------------------------------
+# Jobs: list of workflow jobs
+# ------------------------------------------------------------------------------
+jobs:
+  test:
+    executor: exec-go
+    steps:
+      - checkout
+      - run: echo "helloworld"
