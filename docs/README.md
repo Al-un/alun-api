@@ -81,3 +81,5 @@ heroku addons:create mongolab:sandbox --app alun-api
 - https://lanre.wtf/blog/2017/04/08/testing-http-handlers-go/
 - https://stackoverflow.com/questions/44325232/are-tests-executed-in-parallel-in-go-or-one-by-one/44326377#44326377
 - https://blog.golang.org/subtests
+- Testing tips: https://medium.com/@povilasve/go-advanced-tips-tricks-a872503ac859
+- Helpers: https://github.com/benbjohnson/testing

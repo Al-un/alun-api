@@ -73,7 +73,7 @@ func (at *APITester) TestPath(t *testing.T, apiTest APITestInfo) *httptest.Respo
 	rr := httptest.NewRecorder()
 	at.router.ServeHTTP(rr, req)
 
-	CheckHTTPStatus(t, rr, apiTest.ExpectedHTTPStatus)
+	CheckHTTPStatus(t, 3, rr, apiTest.ExpectedHTTPStatus)
 
 	return rr
 }
@@ -84,10 +84,9 @@ func (at *APITester) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 // CheckHTTPStatus makes a test fails if the response recorder status code
 // is not the expected code
-func CheckHTTPStatus(t *testing.T, rr *httptest.ResponseRecorder, expectedStatus int) {
-	if status := rr.Code; status != expectedStatus {
-		failMsg := fmt.Sprintf("%s got an incorrect HTTP status code: got %v want %v",
-			t.Name(), status, expectedStatus)
-		t.Errorf(failMsg)
-	}
+func CheckHTTPStatus(t *testing.T, callDepth int, rr *httptest.ResponseRecorder, expectedStatus int) {
+	status := rr.Code
+	Assert(t, callDepth, status == expectedStatus,
+		"%s got an incorrect HTTP status code: got %v want %v",
+		t.Name(), status, expectedStatus)
 }
