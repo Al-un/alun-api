@@ -7,78 +7,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/Al-un/alun-api/pkg/test"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-const (
-	userAdminEmail    = "admin@test.com"
-	userAdminUsername = "Admin user"
-	userAdminPassword = "adminPassword"
-	userBasicEmail    = "basic@test.com"
-	userBasicUsername = "Basic user"
-	userBasicPassword = "basicPassword"
-)
-
-var (
-	userAdmin = User{
-		BaseUser: BaseUser{Email: userAdminEmail},
-		IsAdmin:  true,
-		PwdResetToken: pwdResetToken{
-			Token:     "adminToken",
-			CreatedAt: time.Now(),
-			ExpiresAt: time.Now().Add(24 * time.Hour),
-		},
-	}
-	userBasic = User{
-		BaseUser: BaseUser{Email: userBasicEmail},
-		IsAdmin:  true,
-		PwdResetToken: pwdResetToken{
-			Token:     "basicToken",
-			CreatedAt: time.Now(),
-			ExpiresAt: time.Now().Add(24 * time.Hour),
-		},
-	}
-)
-
-func setupUsers(t *testing.T) (string, string, string, string) {
-	adminUser, err := createUser(userAdmin)
-	if err != nil {
-		t.Errorf("Error when setup Admin user %v", err)
-	}
-	basicUser, err := createUser(userBasic)
-	if err != nil {
-		t.Errorf("Error when setup Basic user %v", err)
-	}
-
-	adminJwt, _ := generateJWT(adminUser)
-	basicJwt, _ := generateJWT(basicUser)
-
-	return adminUser.ID.Hex(), basicUser.ID.Hex(), adminJwt.Jwt, basicJwt.Jwt
-}
-
-func teardownUsers(t *testing.T) {
-	// db.al_users.deleteMany({ email: {"$in": ["alun.sng+1@gmail.com", "alun.sng+2@gmail.com"]} })
-	// { "acknowledged" : true, "deletedCount" : 2 }
-
-	toBeDeletedEmails := []string{userAdminEmail, userBasicEmail}
-	filter := bson.M{
-		"email": bson.M{"$in": toBeDeletedEmails},
-	}
-	d, err := dbUserCollection.DeleteMany(context.TODO(), filter, nil)
-	if err != nil {
-		userLogger.Info("[User] error in user deletion: ", err)
-	}
-
-	fmt.Printf("Deleted %d users with emails %+v\n", d.DeletedCount, toBeDeletedEmails)
-}
-
 func TestE2ERegister(t *testing.T) {
 	t.Parallel()
 
-	const userEmail = "registering@test.com"
+	const userEmail = userRegisterEmail
 	const userName = "Pouet"
 	const userPassword = "PlopPouetProut"
 
@@ -343,11 +280,11 @@ func TestE2ERegister(t *testing.T) {
 func TestEndpointDeleteUser(t *testing.T) {
 	t.Parallel()
 
-	_, basicID, _, basicToken := setupUsers(t)
+	_, _, basicID, basicToken := setupUserBasicAndAdmin(t)
 	var testInfo test.APITestInfo
 
 	t.Cleanup(func() {
-		teardownUsers(t)
+		tearDownBasicAndAdmin(t)
 	})
 
 	t.Run("DeleteExistingUser", func(t *testing.T) {
