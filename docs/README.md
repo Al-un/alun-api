@@ -1,4 +1,5 @@
 [![CircleCI](https://circleci.com/gh/Al-un/alun-api/tree/master.svg?style=svg)](https://circleci.com/gh/Al-un/alun-api/tree/master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Al-un/alun-api)](https://goreportcard.com/report/github.com/Al-un/alun-api)
 
 # Al-un API <!-- omit in toc -->
 
