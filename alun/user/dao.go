@@ -64,19 +64,6 @@ func findUserByEmailPassword(email string, clearPassword string) (User, error) {
 	return authUser.User, nil
 }
 
-// isEmailAlreadyRegistered checks if an email is available
-func isEmailAlreadyRegistered(email string) (bool, *core.ServiceMessage) {
-	filter := bson.M{"email": email}
-	userCount, err := dbUserCollection.CountDocuments(context.TODO(), filter)
-
-	if err != nil {
-		userLogger.Info("Error when counting user with email %s %v", email, err)
-		return false, core.NewServiceErrorMessage(err)
-	}
-
-	return userCount > 0, nil
-}
-
 // findUserById fetches an user for a given ID in string format
 func findUserByID(userID string) (User, error) {
 	var user User
@@ -112,6 +99,33 @@ func findLoginByToken(jwt string) (Login, error) {
 	}
 
 	return login, nil
+}
+
+// isEmailAlreadyRegistered checks if an email is available
+func isEmailAlreadyRegistered(email string) (bool, *core.ServiceMessage) {
+	filter := bson.M{"email": email}
+	userCount, err := dbUserCollection.CountDocuments(context.TODO(), filter)
+
+	if err != nil {
+		userLogger.Info("Error when counting user with email %s %v", email, err)
+		return false, core.NewServiceErrorMessage(err)
+	}
+
+	return userCount > 0, nil
+}
+
+// isUserIDExist returns true if userID exists in the database
+func isUserIDExist(userID string) (bool, *core.ServiceMessage) {
+	id, _ := primitive.ObjectIDFromHex(userID)
+	filter := bson.M{"_id": id}
+	userCount, err := dbUserCollection.CountDocuments(context.TODO(), filter)
+
+	if err != nil {
+		userLogger.Info("Error when counting user with id %s %v", userID, err)
+		return false, core.NewServiceErrorMessage(err)
+	}
+
+	return userCount > 0, nil
 }
 
 // createUser creates the user with only an email. The email is checked is
