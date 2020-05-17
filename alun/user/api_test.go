@@ -388,13 +388,14 @@ func TestEndpointUpdateUser(t *testing.T) {
 		checkUserUpdate(rr, basicUserNewUsername, basicUserNewEmail)
 	})
 
-	t.Run("UpdateUserWithAdminToken", func(t *testing.T) {
+	// Align basic user email with expected emails to tearDownBasicAndAdmin
+	t.Run("UpdateUserWithAdminToken", func(t2 *testing.T) {
 		testInfo = testutils.APITestInfo{
 			Path:      fmt.Sprintf("detail/%s", basicUser.ID.Hex()),
 			Method:    http.MethodPut,
 			AuthToken: adminToken,
 			Payload: User{
-				BaseUser: BaseUser{Email: userBasicEmail},
+				BaseUser: BaseUser{Email: fmt.Sprintf("%s%s", t.Name(), userBasicEmail)},
 				Username: userBasicUsername,
 				IsAdmin:  true, // should not be true in DB
 			},
@@ -402,7 +403,7 @@ func TestEndpointUpdateUser(t *testing.T) {
 		}
 		rr := apiTester.TestPath(t, testInfo)
 
-		checkUserUpdate(rr, userBasicUsername, userBasicEmail)
+		checkUserUpdate(rr, userBasicUsername, fmt.Sprintf("%s%s", t.Name(), userBasicEmail))
 	})
 
 	t.Run("UpdateAdminUserWithBasicToken", func(t *testing.T) {
