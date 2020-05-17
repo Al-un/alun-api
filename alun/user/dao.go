@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/Al-un/alun-api/alun/core"
@@ -317,4 +318,64 @@ func deleteLoginByUserID(userID string) int64 {
 
 	userLogger.Debug("Deleting Login of userID <%v>: %d count(s)", userID, d.DeletedCount)
 	return d.DeletedCount
+}
+
+// ---------- Test ------------------------------------------------------------
+
+// SetupUser should only be used in testing files as it creates an user in the
+// database with a specific emailPrefix and a known password
+func SetupUser(user User, emailPrefix string, password string) (User, string, *core.ServiceMessage) {
+	resetToken := "one-two-three"
+
+	// Prefix email to avoid conflict between parallel tests
+	user.Email = fmt.Sprintf("%s%s", emailPrefix, user.Email)
+	user.PwdResetToken = pwdResetToken{
+		Token:       resetToken,
+		CreatedAt:   time.Now(),
+		ExpiresAt:   time.Now().Add(24 * time.Hour),
+		RequestType: userPwdRequestNewUser,
+	}
+
+	// Create user
+	createdUser, err := createUser(user)
+	if err != nil {
+		return User{}, "", err
+	}
+
+	// Setup password
+	_, err = updatePassword(pwdChangeRequest{
+		Token:    resetToken,
+		Password: password,
+		Username: user.Username,
+	})
+	if err != nil {
+		return User{}, "", err
+	}
+
+	jwt, _ := generateJWT(createdUser)
+	return createdUser, jwt.Jwt, nil
+}
+
+// TearDownUsers deletes one or multiple users from the DB after a test suite. DO NOT
+// USE IN PRODUCTION
+//
+// Mongo Shell version:
+// db.al_users.deleteMany({ email: {"$in": ["alun.sng+1@gmail.com", "alun.sng+2@gmail.com"]} })
+// >> { "acknowledged" : true, "deletedCount" : 2 }
+func TearDownUsers(users []User, emailPrefix string) (int64, error) {
+	toBeDeletedEmails := make([]string, len(users))
+	for _, u := range users {
+		toBeDeletedEmails = append(toBeDeletedEmails, fmt.Sprintf("%s%s", emailPrefix, u.Email))
+	}
+
+	filter := bson.M{
+		"email": bson.M{"$in": toBeDeletedEmails},
+	}
+	d, err := dbUserCollection.DeleteMany(context.TODO(), filter, nil)
+	if err != nil {
+		return -1, err
+	}
+
+	// fmt.Printf("Deleted %d users with emails %+v\n", d.DeletedCount, toBeDeletedEmails)
+	return d.DeletedCount, nil
 }
