@@ -7,43 +7,94 @@ import (
 	"github.com/Al-un/alun-api/alun/core"
 )
 
+func handleListBoards(w http.ResponseWriter, r *http.Request, claims core.JwtClaims) {
+	boards, err := findBoardsByUserID(claims.UserID)
+	if err != nil {
+		err.Write(w, r)
+		return
+	}
+
+	if len(boards) > 0 {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusNoContent)
+	}
+	json.NewEncoder(w).Encode(boards)
+}
+
+func handleGetBoard(w http.ResponseWriter, r *http.Request, claims core.JwtClaims) {
+	boardID := core.GetVar(r, "boardId")
+	board, err := findBoardByID(boardID)
+	if err != nil {
+		err.Write(w, r)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(board)
+}
+
+func handleCreateBoard(w http.ResponseWriter, r *http.Request, claims core.JwtClaims) {
+	var toCreateBoard Board
+	json.NewDecoder(r.Body).Decode(&toCreateBoard)
+	toCreateBoard.PrepareForCreate(claims)
+
+	newBoard, err := createBoard(toCreateBoard)
+	if err != nil {
+		err.Write(w, r)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(newBoard)
+}
+
+func handleUpdateBoard(w http.ResponseWriter, r *http.Request, claims core.JwtClaims) {
+	boardID := core.GetVar(r, "boardId")
+	var toUpdateBoard Board
+	json.NewDecoder(r.Body).Decode(&toUpdateBoard)
+	toUpdateBoard.PrepareForUpdate(claims)
+
+	updatedBoard, err := updateBoard(boardID, toUpdateBoard)
+	if err != nil {
+		err.Write(w, r)
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(updatedBoard)
+}
+
+func handleDeleteBoard(w http.ResponseWriter, r *http.Request, claims core.JwtClaims) {
+	boardID := core.GetVar(r, "boardId")
+	deletedBoardCount, _, err := deleteBoard(boardID)
+
+	if err != nil {
+		err.Write(w, r)
+		return
+	}
+
+	if deletedBoardCount > 0 {
+		w.WriteHeader(http.StatusNoContent)
+	} else {
+		w.WriteHeader(http.StatusNotFound)
+	}
+}
+
 func handleCreateMemo(w http.ResponseWriter, r *http.Request, claims core.JwtClaims) {
 	var toCreateMemo Memo
 	json.NewDecoder(r.Body).Decode(&toCreateMemo)
 
-	memoLogger.Verbose("Parsed new memo: %v", toCreateMemo)
+	// memoLogger.Verbose("Parsed new memo: %v", toCreateMemo)
 	toCreateMemo.PrepareForCreate(claims)
-	memoLogger.Verbose("Prepared memo %v for creation with %v", toCreateMemo, claims)
+	// memoLogger.Verbose("Prepared memo %v for creation with %v", toCreateMemo, claims)
 
 	newMemo, err := createMemo(toCreateMemo)
 	if err != nil {
-		core.HandleServerError(w, r, err)
+		err.Write(w, r)
 		return
 	}
 
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(newMemo)
-}
-
-func handleListMemo(w http.ResponseWriter, r *http.Request, claims core.JwtClaims) {
-	memoLogger.Verbose("Loading memos for %v", claims.UserID)
-	memos, err := findMemosByUserID(claims.UserID)
-	if err != nil {
-		core.HandleServerError(w, r, err)
-		return
-	}
-
-	json.NewEncoder(w).Encode(memos)
-}
-
-func handleGetMemo(w http.ResponseWriter, r *http.Request, claims core.JwtClaims) {
-	memoID := core.GetVar(r, "memoId")
-	memo, err := findMemoByID(memoID)
-	if err != nil {
-		core.HandleServerError(w, r, err)
-		return
-	}
-
-	json.NewEncoder(w).Encode(memo)
 }
 
 func handleUpdateMemo(w http.ResponseWriter, r *http.Request, claims core.JwtClaims) {
@@ -55,16 +106,22 @@ func handleUpdateMemo(w http.ResponseWriter, r *http.Request, claims core.JwtCla
 
 	newMemo, err := updateMemo(memoID, toUpdateMemo)
 	if err != nil {
-		core.HandleServerError(w, r, err)
+		err.Write(w, r)
 		return
 	}
 
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(newMemo)
 }
 
 func handleDeleteMemo(w http.ResponseWriter, r *http.Request, claims core.JwtClaims) {
 	memoID := core.GetVar(r, "memoId")
-	deleteCount := deleteMemo(memoID)
+	deleteCount, err := deleteMemo(memoID)
+
+	if err != nil {
+		err.Write(w, r)
+		return
+	}
 
 	if deleteCount > 0 {
 		w.WriteHeader(http.StatusNoContent)

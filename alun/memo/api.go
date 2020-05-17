@@ -20,14 +20,17 @@ var isAdminOrOwnUser = func(r *http.Request, jwtClaims core.JwtClaims) bool {
 	return userID == jwtClaims.UserID
 }
 
-func init() {
+func initAPI() {
 	apiRoot := "memos"
 	MemoAPI = core.NewAPI(apiRoot, memoLogger)
 	MemoAPI.AddMiddleware(core.AddJSONHeaders)
 
-	MemoAPI.AddProtectedEndpoint("", "GET", core.APIv1, core.CheckIfLogged, handleListMemo)
-	MemoAPI.AddProtectedEndpoint("", "POST", core.APIv1, core.CheckIfLogged, handleCreateMemo)
-	MemoAPI.AddProtectedEndpoint("{memoId}", "GET", core.APIv1, core.CheckIfLogged, handleGetMemo)
-	MemoAPI.AddProtectedEndpoint("{memoId}", "PUT", core.APIv1, core.CheckIfLogged, handleUpdateMemo)
-	MemoAPI.AddProtectedEndpoint("{memoId}", "DELETE", core.APIv1, core.CheckIfLogged, handleDeleteMemo)
+	MemoAPI.AddProtectedEndpoint("/boards", http.MethodGet, core.APIv1, core.CheckIfLogged, handleListBoards)
+	MemoAPI.AddProtectedEndpoint("/boards", http.MethodPost, core.APIv1, core.CheckIfLogged, handleCreateBoard)
+	MemoAPI.AddProtectedEndpoint("/boards/{boardId}", http.MethodGet, core.APIv1, core.CheckIfLogged, handleGetBoard)
+	MemoAPI.AddProtectedEndpoint("/boards/{boardId}", http.MethodPut, core.APIv1, core.CheckIfLogged, handleUpdateBoard)
+	MemoAPI.AddProtectedEndpoint("/boards/{boardId}", http.MethodDelete, core.APIv1, core.CheckIfLogged, handleDeleteBoard)
+	MemoAPI.AddProtectedEndpoint("/boards/{boardId}/memos", http.MethodPost, core.APIv1, core.CheckIfLogged, handleCreateMemo)
+	MemoAPI.AddProtectedEndpoint("/boards/{boardId}/memos", http.MethodDelete, core.APIv1, core.CheckIfLogged, handleDeleteMemo)
+	MemoAPI.AddProtectedEndpoint("/memos/{memoId}", http.MethodPut, core.APIv1, core.CheckIfLogged, handleUpdateMemo)
 }
