@@ -71,6 +71,7 @@ jobs:
           name: "Test"
           environment:
             ALUN_MODE: test
+            ALUN_MEMO_DATABASE_URL: mongodb://testUser:testPassword@localhost:27017/pouet
             ALUN_USER_DATABASE_URL: mongodb://testUser:testPassword@localhost:27017/pouet
           command: go test ./alun/... -coverprofile cover.out -parallel 4
       - run:
