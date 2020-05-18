@@ -1,5 +1,6 @@
 [![CircleCI](https://circleci.com/gh/Al-un/alun-api/tree/master.svg?style=svg)](https://circleci.com/gh/Al-un/alun-api/tree/master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/Al-un/alun-api)](https://goreportcard.com/report/github.com/Al-un/alun-api)
+[![Docker Badge](https://img.shields.io/docker/cloud/build/alunsng/alun-api.svg)](https://hub.docker.com/r/alunsng/alun-api)
 
 # Al-un API <!-- omit in toc -->
 
@@ -94,3 +95,9 @@ heroku addons:create mongolab:sandbox --app alun-api
 - https://itnext.io/go-modules-and-circleci-c0d6fac0b000
 - dependencies location: https://stackoverflow.com/questions/52082783/how-do-i-find-the-go-module-source-cache
 - artifacts: https://circleci.com/docs/2.0/artifacts/
+
+**MongoDB: lookup**
+
+- https://www.mongodb.com/blog/post/quick-start-golang--mongodb--data-aggregation-pipeline
+- https://www.sitepoint.com/using-joins-in-mongodb-nosql-databases/
+- https://www.mongodb.com/blog/post/6-rules-of-thumb-for-mongodb-schema-design-part-3
