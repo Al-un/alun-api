@@ -50,7 +50,7 @@ type TrackedEntity struct {
 	CreatedBy  primitive.ObjectID `json:"createdBy,omitempty" bson:"createdBy,omitempty"`
 	CreatedAt  time.Time          `json:"createdAt,omitempty" bson:"createdAt,omitempty"`
 	ModifiedBy primitive.ObjectID `json:"modifiedBy,omitempty" bson:"modifiedBy,omitempty"`
-	ModifiedAt time.Time          `json:"modifiedAt,omitempty" bson:"mofidiedAt,omitempty"`
+	ModifiedAt time.Time          `json:"modifiedAt,omitempty" bson:"modifiedAt,omitempty"`
 }
 
 // PrepareForCreate set creation related fields
@@ -66,6 +66,15 @@ func (t *TrackedEntity) PrepareForUpdate(claims JwtClaims) {
 	t.ModifiedAt = time.Now()
 	userID, _ := primitive.ObjectIDFromHex(claims.UserID)
 	t.ModifiedBy = userID
+}
+
+// Equals check the equality of each field and time fields are compared with a
+// precision of one second
+func (t *TrackedEntity) Equals(t2 TrackedEntity) bool {
+	return t.CreatedBy == t2.CreatedBy &&
+		t.CreatedAt.Round(1*time.Second).Equal(t2.CreatedAt.Round(1*time.Second)) &&
+		t.ModifiedBy == t2.ModifiedBy &&
+		t.ModifiedAt.Round(1*time.Second).Equal(t2.ModifiedAt.Round(1*time.Second))
 }
 
 const (
