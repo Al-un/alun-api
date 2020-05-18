@@ -80,6 +80,8 @@ func handleDeleteBoard(w http.ResponseWriter, r *http.Request, claims core.JwtCl
 }
 
 func handleCreateMemo(w http.ResponseWriter, r *http.Request, claims core.JwtClaims) {
+	boardID := core.GetVar(r, "boardId")
+
 	var toCreateMemo Memo
 	json.NewDecoder(r.Body).Decode(&toCreateMemo)
 
@@ -87,7 +89,7 @@ func handleCreateMemo(w http.ResponseWriter, r *http.Request, claims core.JwtCla
 	toCreateMemo.PrepareForCreate(claims)
 	// memoLogger.Verbose("Prepared memo %v for creation with %v", toCreateMemo, claims)
 
-	newMemo, err := createMemo(toCreateMemo)
+	newMemo, err := createMemo(boardID, toCreateMemo)
 	if err != nil {
 		err.Write(w, r)
 		return
@@ -98,13 +100,14 @@ func handleCreateMemo(w http.ResponseWriter, r *http.Request, claims core.JwtCla
 }
 
 func handleUpdateMemo(w http.ResponseWriter, r *http.Request, claims core.JwtClaims) {
+	boardID := core.GetVar(r, "boardId")
 	memoID := core.GetVar(r, "memoId")
 	var toUpdateMemo Memo
 	json.NewDecoder(r.Body).Decode(&toUpdateMemo)
 
 	toUpdateMemo.PrepareForUpdate(claims)
 
-	newMemo, err := updateMemo(memoID, toUpdateMemo)
+	newMemo, err := updateMemo(boardID, memoID, toUpdateMemo)
 	if err != nil {
 		err.Write(w, r)
 		return
@@ -115,8 +118,9 @@ func handleUpdateMemo(w http.ResponseWriter, r *http.Request, claims core.JwtCla
 }
 
 func handleDeleteMemo(w http.ResponseWriter, r *http.Request, claims core.JwtClaims) {
+	boardID := core.GetVar(r, "boardId")
 	memoID := core.GetVar(r, "memoId")
-	deleteCount, err := deleteMemo(memoID)
+	deleteCount, err := deleteMemo(boardID, memoID)
 
 	if err != nil {
 		err.Write(w, r)
