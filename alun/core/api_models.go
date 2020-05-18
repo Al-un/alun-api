@@ -187,7 +187,7 @@ func (api *API) applyMergedMiddlewares(h http.Handler) http.Handler {
 
 // LoadInRouter load all API handlers into the provided routing system.
 //
-// This method aims at making the whole project framework-agonstic: if
+// This method aims at making the whole project framework-agnostic: if
 // the routing framework change, only this method should change
 //
 // The Middleware could have been added AFTER the different endpoints
