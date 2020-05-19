@@ -41,7 +41,7 @@ func init() {
 
 	// --- Init Email
 	if alunEmail == nil {
-		utils.GetAlunEmail()
+		alunEmail = utils.GetAlunEmail()
 	}
 
 	// --- Init DAO
