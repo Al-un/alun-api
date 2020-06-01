@@ -325,7 +325,7 @@ func deleteLoginByUserID(userID string) int64 {
 // SetupUser should only be used in testing files as it creates an user in the
 // database with a specific emailPrefix and a known password
 func SetupUser(user User, emailPrefix string, password string) (User, string, *core.ServiceMessage) {
-	resetToken := "one-two-three"
+	resetToken := fmt.Sprintf("%s%s", emailPrefix, user.Email)
 
 	// Prefix email to avoid conflict between parallel tests
 	user.Email = fmt.Sprintf("%s%s", emailPrefix, user.Email)
