@@ -61,7 +61,7 @@ func TestE2EMemo(t *testing.T) {
 			Path:               "boards",
 			Method:             http.MethodGet,
 			Payload:            nil,
-			ExpectedHTTPStatus: http.StatusNoContent,
+			ExpectedHTTPStatus: http.StatusOK,
 			AuthToken:          token,
 		}
 		rr := apiTester.TestPath(t, testInfo)

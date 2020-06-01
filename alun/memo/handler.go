@@ -14,11 +14,7 @@ func handleListBoards(w http.ResponseWriter, r *http.Request, claims core.JwtCla
 		return
 	}
 
-	if len(boards) > 0 {
-		w.WriteHeader(http.StatusOK)
-	} else {
-		w.WriteHeader(http.StatusNoContent)
-	}
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(boards)
 }
 
