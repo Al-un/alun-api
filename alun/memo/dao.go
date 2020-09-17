@@ -220,8 +220,8 @@ func updateBoard(boardID string, toUpdateBoard Board) (*Board, *core.ServiceMess
 			"title":       toUpdateBoard.Title,
 			"description": toUpdateBoard.Description,
 			"access":      toUpdateBoard.Access,
-			"modifiedBy":  toUpdateBoard.ModifiedBy,
-			"modifiedAt":  toUpdateBoard.ModifiedAt,
+			"updatedBy":   toUpdateBoard.UpdatedBy,
+			"updatedAt":   toUpdateBoard.UpdatedAt,
 		},
 	}
 
@@ -248,8 +248,8 @@ func updateMemo(boardID string, memoID string, toUpdateMemo Memo) (*Memo, *core.
 			"memos.$.title":       toUpdateMemo.Title,
 			"memos.$.description": toUpdateMemo.Description,
 			"memos.$.items":       toUpdateMemo.Items,
-			"memos.$.modifiedBy":  toUpdateMemo.ModifiedBy,
-			"memos.$.modifiedAt":  toUpdateMemo.ModifiedAt,
+			"memos.$.updatedBy":   toUpdateMemo.UpdatedBy,
+			"memos.$.updatedAt":   toUpdateMemo.UpdatedAt,
 		},
 	}
 

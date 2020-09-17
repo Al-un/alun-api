@@ -88,7 +88,7 @@ func TestE2EMemo(t *testing.T) {
 		testutils.Equals(t, testutils.CallFromTestFile, board1.BasicInfo, newBoard.BasicInfo)
 		testutils.Equals(t, testutils.CallFromTestFile, board1.Access, newBoard.Access)
 		testutils.Assert(t, testutils.CallFromTestFile, !newBoard.CreatedAt.IsZero(), "CreatedAt is empty")
-		testutils.Assert(t, testutils.CallFromTestFile, newBoard.ModifiedAt.IsZero(), "ModifiedAt is not empty %v", newBoard.ModifiedAt)
+		testutils.Assert(t, testutils.CallFromTestFile, newBoard.UpdatedAt.IsZero(), "UpdatedAt is not empty %v", newBoard.UpdatedAt)
 
 		// Check in DB
 		boardFromDb, _ := findBoardByID(newBoard.ID.Hex())
@@ -117,7 +117,7 @@ func TestE2EMemo(t *testing.T) {
 		testutils.Equals(t, testutils.CallFromTestFile, memo1.BasicInfo, newMemo.BasicInfo)
 		testutils.Equals(t, testutils.CallFromTestFile, memo1.Items, newMemo.Items)
 		testutils.Assert(t, testutils.CallFromTestFile, !newMemo.CreatedAt.IsZero(), "CreatedAt is empty")
-		testutils.Assert(t, testutils.CallFromTestFile, newMemo.ModifiedAt.IsZero(), "ModifiedAt is not empty %v", memo1.ModifiedAt)
+		testutils.Assert(t, testutils.CallFromTestFile, newMemo.UpdatedAt.IsZero(), "UpdatedAt is not empty %v", memo1.UpdatedAt)
 
 		// Check in DB
 		memoFromDb, _ := findMemoByID(board1.ID.Hex(), newMemo.ID.Hex())
@@ -146,16 +146,16 @@ func TestE2EMemo(t *testing.T) {
 
 		testutils.Equals(t, testutils.CallFromTestFile, board1TitleNew, newBoard.Title)
 		testutils.Equals(t, testutils.CallFromTestFile, board1.CreatedAt, newBoard.CreatedAt)
-		testutils.Assert(t, testutils.CallFromTestFile, !newBoard.ModifiedAt.IsZero(), "ModifiedAt is empty")
+		testutils.Assert(t, testutils.CallFromTestFile, !newBoard.UpdatedAt.IsZero(), "UpdatedAt is empty")
 
 		// Check in DB
 		boardFromDb, _ := findBoardByID(newBoard.ID.Hex())
 		testutils.Equals(t, testutils.CallFromTestFile, board1TitleNew, boardFromDb.Title)
-		testutils.Equals(t, testutils.CallFromTestFile, newBoard.ModifiedAt, boardFromDb.ModifiedAt)
+		testutils.Equals(t, testutils.CallFromTestFile, newBoard.UpdatedAt, boardFromDb.UpdatedAt)
 
 		// Save Data
-		board1.ModifiedAt = boardFromDb.ModifiedAt
-		board1.ModifiedBy = boardFromDb.ModifiedBy
+		board1.UpdatedAt = boardFromDb.UpdatedAt
+		board1.UpdatedBy = boardFromDb.UpdatedBy
 	})
 
 	t.Run("LoadListWhichShouldNotHaveMemos", func(t *testing.T) {
@@ -202,7 +202,7 @@ func TestE2EMemo(t *testing.T) {
 			"Items are not equals: \ngot:\n%+v\nexpected:\n%+v",
 			newMemo.Items, memo2.Items)
 		testutils.Assert(t, testutils.CallFromTestFile, !newMemo.CreatedAt.IsZero(), "CreatedAt is empty")
-		testutils.Assert(t, testutils.CallFromTestFile, newMemo.ModifiedAt.IsZero(), "ModifiedAt is not empty %v", memo1.ModifiedAt)
+		testutils.Assert(t, testutils.CallFromTestFile, newMemo.UpdatedAt.IsZero(), "UpdatedAt is not empty %v", memo1.UpdatedAt)
 
 		// Check in DB
 		memoFromDb, _ := findMemoByID(board1.ID.Hex(), newMemo.ID.Hex())
@@ -234,17 +234,17 @@ func TestE2EMemo(t *testing.T) {
 		testutils.Assert(t, testutils.CallFromTestFile, areItemsArrayEquals(memo1ItemsSet2, newMemo.Items),
 			"Items are not equals: \ngot:\n%+v\nexpected:\n%+v",
 			newMemo.Items, memo1ItemsSet2)
-		testutils.Assert(t, testutils.CallFromTestFile, !newMemo.ModifiedAt.IsZero(), "ModifiedAt is empty")
+		testutils.Assert(t, testutils.CallFromTestFile, !newMemo.UpdatedAt.IsZero(), "UpdatedAt is empty")
 
 		// // Check in DB
 		memoFromDb, _ := findMemoByID(board1.ID.Hex(), memo1.ID.Hex())
 		testutils.Equals(t, testutils.CallFromTestFile, memo1.BasicInfo, memoFromDb.BasicInfo)
-		testutils.Equals(t, testutils.CallFromTestFile, newMemo.ModifiedAt, memoFromDb.ModifiedAt)
+		testutils.Equals(t, testutils.CallFromTestFile, newMemo.UpdatedAt, memoFromDb.UpdatedAt)
 		testutils.Equals(t, testutils.CallFromTestFile, memo1ItemsSet2, memoFromDb.Items)
 
 		memo1.Items = memo1ItemsSet2
-		memo1.ModifiedAt = memoFromDb.ModifiedAt
-		memo1.ModifiedBy = memoFromDb.ModifiedBy
+		memo1.UpdatedAt = memoFromDb.UpdatedAt
+		memo1.UpdatedBy = memoFromDb.UpdatedBy
 	})
 
 	t.Run("GetFirstBoardDetails", func(t *testing.T) {

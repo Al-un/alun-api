@@ -47,10 +47,10 @@ type AccessChecker func(r *http.Request, jwtClaims JwtClaims) bool
 // User reference are `primitive.ObjectID` to match "primary keys" of the users
 // collection
 type TrackedEntity struct {
-	CreatedBy  primitive.ObjectID `json:"createdBy,omitempty" bson:"createdBy,omitempty"`
-	CreatedAt  time.Time          `json:"createdAt,omitempty" bson:"createdAt,omitempty"`
-	ModifiedBy primitive.ObjectID `json:"modifiedBy,omitempty" bson:"modifiedBy,omitempty"`
-	ModifiedAt time.Time          `json:"modifiedAt,omitempty" bson:"modifiedAt,omitempty"`
+	CreatedBy primitive.ObjectID `json:"createdBy,omitempty" bson:"createdBy,omitempty"`
+	CreatedAt time.Time          `json:"createdAt,omitempty" bson:"createdAt,omitempty"`
+	UpdatedBy primitive.ObjectID `json:"updatedBy,omitempty" bson:"updatedBy,omitempty"`
+	UpdatedAt time.Time          `json:"updatedAt,omitempty" bson:"updatedAt,omitempty"`
 }
 
 // PrepareForCreate set creation related fields
@@ -63,9 +63,9 @@ func (t *TrackedEntity) PrepareForCreate(claims JwtClaims) {
 // PrepareForUpdate updates modification related field before any update based on
 // the UserID provided by the claims
 func (t *TrackedEntity) PrepareForUpdate(claims JwtClaims) {
-	t.ModifiedAt = time.Now()
+	t.UpdatedAt = time.Now()
 	userID, _ := primitive.ObjectIDFromHex(claims.UserID)
-	t.ModifiedBy = userID
+	t.UpdatedBy = userID
 }
 
 // Equals check the equality of each field and time fields are compared with a
@@ -73,8 +73,8 @@ func (t *TrackedEntity) PrepareForUpdate(claims JwtClaims) {
 func (t *TrackedEntity) Equals(t2 TrackedEntity) bool {
 	return t.CreatedBy == t2.CreatedBy &&
 		t.CreatedAt.Round(1*time.Second).Equal(t2.CreatedAt.Round(1*time.Second)) &&
-		t.ModifiedBy == t2.ModifiedBy &&
-		t.ModifiedAt.Round(1*time.Second).Equal(t2.ModifiedAt.Round(1*time.Second))
+		t.UpdatedBy == t2.UpdatedBy &&
+		t.UpdatedAt.Round(1*time.Second).Equal(t2.UpdatedAt.Round(1*time.Second))
 }
 
 const (
@@ -82,10 +82,10 @@ const (
 	TrackedCreatedBy = "createdBy"
 	// TrackedCreatedAt is the createdAt key. TrackedEntity is assumed to in "bson:,inline"
 	TrackedCreatedAt = "createdAt"
-	// TrackedModifiedBy is the modifiedBy key. TrackedEntity is assumed to in "bson:,inline"
-	TrackedModifiedBy = "modifiedBy"
-	// TrackedModifiedAt is the modifiedAt key. TrackedEntity is assumed to in "bson:,inline"
-	TrackedModifiedAt = "modifiedAt"
+	// TrackedUpdatedBy is the updatedBy key. TrackedEntity is assumed to in "bson:,inline"
+	TrackedUpdatedBy = "updatedBy"
+	// TrackedUpdatedAt is the updatedAt key. TrackedEntity is assumed to in "bson:,inline"
+	TrackedUpdatedAt = "updatedAt"
 )
 
 // ----------------------------------------------------------------------------
