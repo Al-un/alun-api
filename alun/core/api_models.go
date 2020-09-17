@@ -238,4 +238,5 @@ func (api *API) LoadInRouter(router *mux.Router) {
 		(*router).HandleFunc(endpoint, corsHandler).Methods(http.MethodOptions)
 	}
 
+	router.Use(mux.CORSMethodMiddleware(router))
 }
